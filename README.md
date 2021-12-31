@@ -10,7 +10,7 @@ Según el tipo de archivo que sea estará ubicado en uno u otra carpeta. Hemos c
     + 20211012_juntar_datos.Rmd: Es el código que utilizamos para crear la base de datos que utilizaremos para crear los distintos modelos de prueba que hemos hecho.
     + 20211208_juntar_datos_convo.Rmd: En este código creamos la base de datos que vamos a utilizar para crear las imagenes del modelo convolucional.
     + 20211222_crea_modelo.Rmd: Contiene el código que utilizamos para crear los distintos modelos. Las pruebas que se han hecho con los modelos Random Forest, XGBoost y una red neuronal.
-    + 20211219_crea_modelo.Rmd: De este archivo obtendremos la parte de las redes convolucionales. La cual la podremos encontrar en el apartado referido a estos.
+    + 20211219_crea_modelo.Rmd: De este archivo obtendremos la parte de las redes convolucionales. La cual la podremos encontrar en el apartado referido a esta. En este apartado crearemos las imagenes que utilizaremos para crear la red convolucional.
     + 20211213_anali_explora.Rmd: En este código tenemos el análisis que hacemos de las variables derivadas. En este caso sin separar por temporadas.
     + 20211213_anali_explora2.Rmd: En este código tenemos el análisis que hacemos de las variables derivadas. En este caso separando por temporadas.
     + 20211227_descrip_ini.Rmd: En este código tenemos el análisis que hacemos de las variables iniciales. Separadas por temporadas y de primera y segunda división.
