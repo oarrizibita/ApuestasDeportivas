@@ -1,0 +1,2634 @@
+---
+title: "20211012_juntar_datos"
+author: "Olast Arrizibita Iriarte"
+date: " 12 de octubre de 2021"
+output: 
+  html_document:
+    highlight: default
+    number_sections: yes
+    theme: cosmo
+    toc: yes
+    toc_depth: 3
+    code_folding: hide
+  word_document: default
+  pdf_document:
+    highlight: zenburn
+    toc: yes
+---
+
+
+<style>
+body {
+text-align: justify}
+</style>
+
+**************
+**************
+
+El objetivo de este trabajo sera el de juntar las distinta bases de datos que tenemos.
+
+```{r CaRGaR LIBRERIAS, include=FALSE}
+
+library(Hmisc)
+library(zoo)
+library(ggplot2)
+library(lubridate)
+library(tidyr)
+# library(tidyverse)
+library(readxl)
+library(xlsx)
+library(readr)
+library(kableExtra)
+library(rmarkdown)
+library(dplyr)
+# library(jmv)
+
+
+```
+
+
+```{r funci}
+
+
+```
+
+
+
+Los datos que vamos a integrar aqui seran los respectivos a las temporadas entre 2004/2005 hasta 2019/2020.
+
+```{r Cargar datos 1, message=FALSE, include=FALSE}
+
+setwd("~/OLAST/MASTERRA/CIENCIA DE DATOS/TFM/datu baseak")
+df04_A <- read_excel("2004_2005_A.xlsx")
+df05 <- read_excel("2005_2006.xlsx")
+df06 <- read_excel("2006_2007.xlsx")
+df07 <- read_excel("2007_2008.xlsx") # Tenemos alguna variables que pierde parte de su información
+df08 <- read_excel("2008_2009.xlsx")
+df09 <- read_excel("2009_2010.xlsx")
+df10 <- read_excel("2010_2011.xlsx")
+df11 <- read_excel("2011_2012.xlsx")
+df12 <- read_excel("2012_2013.xlsx")
+df13 <- read_excel("2013_2014.xlsx")
+df14 <- read_excel("2014_2015.xlsx")
+df15 <- read_excel("2015_2016.xlsx")
+df16 <- read_excel("2016_2017.xlsx")
+df17 <- read_excel("2017_2018.xlsx")
+df18 <- read_excel("2018_2019.xlsx")
+df19 <- read_excel("2019_2020.xlsx")
+df20 <- read_excel("2020_2021.xlsx")
+
+common_col_names <- Reduce(intersect, list(names(df05), names(df06), names(df07), names(df08), names(df09),
+                                           names(df10), names(df11), names(df12), names(df13), names(df14),
+                                           names(df15), names(df16), names(df17), names(df18), names(df19),
+                                           names(df20))) # 37
+
+
+############## SEGUNDA
+
+setwd("~/OLAST/MASTERRA/CIENCIA DE DATOS/TFM/datu baseak/segunda")
+df04_2_A <- read_excel("2_2004_2005_A.xlsx")[,-1] %>% filter(!is.na(HomeTeam))
+df05_2 <- read_excel("2_2005_2006.xlsx")[,-1] %>% filter(!is.na(HomeTeam))
+df06_2 <- read_excel("2_2006_2007.xlsx")[,-1] %>% filter(!is.na(HomeTeam))
+df07_2 <- read_excel("2_2007_2008.xlsx")[,-1] %>% filter(!is.na(HomeTeam))
+df08_2 <- read_excel("2_2008_2009.xlsx")[,-1] %>% filter(!is.na(HomeTeam))
+df09_2 <- read_excel("2_2009_2010.xlsx")[,-1] %>% filter(!is.na(HomeTeam))
+df10_2 <- read_excel("2_2010_2011.xlsx")[,-1] %>% filter(!is.na(HomeTeam))
+df11_2 <- read_excel("2_2011_2012.xlsx")[,-1] %>% filter(!is.na(HomeTeam))
+df12_2 <- read_excel("2_2012_2013.xlsx")[,-1] %>% filter(!is.na(HomeTeam))
+df13_2 <- read_excel("2_2013_2014.xlsx")[,-1] %>% filter(!is.na(HomeTeam))
+df14_2 <- read_excel("2_2014_2015.xlsx")[,-1] %>% filter(!is.na(HomeTeam))
+df15_2 <- read_excel("2_2015_2016.xlsx")[,-1] %>% filter(!is.na(HomeTeam))
+df16_2 <- read_excel("2_2016_2017.xlsx")[,-1] %>% filter(!is.na(HomeTeam))
+df17_2 <- read_excel("2_2017_2018.xlsx")[,-1] %>% filter(!is.na(HomeTeam))
+df18_2 <- read_excel("2_2018_2019.xlsx")[,-1] %>% filter(!is.na(HomeTeam))
+df19_2 <- read_excel("2_2019_2020.xlsx")[,-1] %>% filter(!is.na(HomeTeam))
+df20_2 <- read_excel("2_2020_2021.xlsx")[,-1] %>% filter(!is.na(HomeTeam))
+
+
+```
+
+Tal como podemos observar tenemos una cantidad desigual de variables dependiendo la temporada en la que estemos. Desde las 61 de la temporada 2018/2019 hasta las 105 de la temporada 2019/2020. Alfinal conseguimos que nuestras variables comunes sean 37.
+
+```{r seleccionar}
+
+df05<- df05[common_col_names]
+df06<- df06[common_col_names]
+df07<- df07[common_col_names]
+df08<- df08[common_col_names]
+df09<- df09[common_col_names]
+df10<- df10[common_col_names]
+df11<- df11[common_col_names]
+df12<- df12[common_col_names]
+df13<- df13[common_col_names]
+df14<- df14[common_col_names]
+df15<- df15[common_col_names]
+df16<- df16[common_col_names]
+df17<- df17[common_col_names]
+df18<- df18[common_col_names]
+df19<- df19[common_col_names]
+df20<- df20[common_col_names]
+
+```
+
+Formateamos el formato de la fecha para que lo podamos tener en el formato que nos interesa.
+
+```{r date}
+
+df04_A<- df04_A %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+df05<- df05 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+df06<- df06 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+df07<- df07 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+df08<- df08 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+
+df10<- df10 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+df11<- df11 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+df12<- df12 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+df13<- df13 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+df14<- df14 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+df15<- df15 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+df16<- df16 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+df17<- df17 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+df18<- df18 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%Y")) %>% mutate(Date=as.character(Date))
+df19<- df19 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%Y")) %>% mutate(Date=as.character(Date))
+df20<- df20 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%Y")) %>% mutate(Date=as.character(Date))
+
+# df<- rbind(df05, df06, df07, df08, df09, df10, df11, df12, df13, df14, df15, df16, df17, df18, df19, df20)
+
+# rm(df04_A, df05, df06, df07, df08, df09, df10, df11, df12, df13, df14, df15, df16, df17, df18, df19, df20)
+
+# rm(df04_2_A, df05_2, df06_2, df07_2, df08_2, df09_2, df10_2, df11_2, df12_2, df13_2, df14_2, df15_2, df16_2, df17_2, df18_2, df19_2, df20_2)
+
+
+######### SEGUNDA
+
+
+df04_2_A<- df04_2_A %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+df05_2<- df05_2 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+df06_2<- df06_2 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+df07_2<- df07_2 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+df08_2<- df08_2 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+df09_2<- df09_2 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+df10_2<- df10_2 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+df11_2<- df11_2 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+df12_2<- df12_2 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+df13_2<- df13_2 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+df14_2<- df14_2 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+df15_2<- df15_2 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+df16_2<- df16_2 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+df17_2<- df17_2 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+df18_2<- df18_2 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%Y")) %>% mutate(Date=as.character(Date))
+df19_2<- df19_2 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%Y")) %>% mutate(Date=as.character(Date))
+df20_2<- df20_2 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%Y")) %>% mutate(Date=as.character(Date))
+
+
+```
+
+
+Lo primero que haremos sera antes de nada crear un identificador de la temporada.
+
+```{r temporada identifi}
+
+df04_A$Div<- "2004/2005"
+df05$Div<- "2005/2006"
+df06$Div<- "2006/2007"
+df07$Div<- "2007/2008"
+df08$Div<- "2008/2009"
+df09$Div<- "2009/2010"
+df10$Div<- "2010/2011"
+df11$Div<- "2011/2012"
+df12$Div<- "2012/2013"
+df13$Div<- "2013/2014"
+df14$Div<- "2014/2015"
+df15$Div<- "2015/2016"
+df16$Div<- "2016/2017"
+df17$Div<- "2017/2018"
+df18$Div<- "2018/2019"
+df19$Div<- "2019/2020"
+df20$Div<- "2020/2021"
+
+
+df04_2_A$Div<- "2004/2005"
+df05_2$Div<- "2005/2006"
+df06_2$Div<- "2006/2007"
+df07_2$Div<- "2007/2008"
+df08_2$Div<- "2008/2009"
+df09_2$Div<- "2009/2010"
+df10_2$Div<- "2010/2011"
+df11_2$Div<- "2011/2012"
+df12_2$Div<- "2012/2013"
+df13_2$Div<- "2013/2014"
+df14_2$Div<- "2014/2015"
+df15_2$Div<- "2015/2016"
+df16_2$Div<- "2016/2017"
+df17_2$Div<- "2017/2018"
+df18_2$Div<- "2018/2019"
+df19_2$Div<- "2019/2020"
+df20_2$Div<- "2020/2021"
+
+```
+
+**************
+**************
+
+# Creacion variables deportivas
+
+Lo siguiente que haremos sera crear nuevas variables:
+
++ Posición actual en la liga local/visitante ########
++ Cuantos Partidos sin ganar desde ultima victoria en la actual liga local/visitante. En absoluto y separado por local/visitante ########
++ Numero de partidos ganados consecutivos local/visitante. En absoluto y separado por local/visitante ########
++ Numero de partidos perdidos consecutivos local/visitante. En absoluto y separado por local/visitante ########
++ Puesto en el que acabo el año anterior a mitad de temporada local/visitante ########
++ Puesto en el que acabo el año anterior al acabar la temporada local/visitante ########
++ Mejor racha de partidos ganados entre la primer mitad de campeonato local/visitante
++ Mejor racha de partidos ganados entre la segundo mitad de campeonato local/visitante
++ Peor racha de partidos perdidos entre la primer mitad de campeonato local/visitante
++ Peor racha de partidos perdidos entre la segundo mitad de campeonato local/visitante
++ Puntuación de los ultimos 5 partidos (1: ganar, 0: empatar: -1:perder) en absoluto, local o visitante  ########
++ Goles encajados en los 3 ultimos partidos en absoluto, local o visitante  ########
++ Goles realizados en los 3 ultimos partidos en absoluto, local o visitante  ########
++ Goles encajados en la primera parte en los 3 ultimos partidos en absoluto, local o visitante  ########
++ Goles realizados en la primera parte en los 3 ultimos partidos en absoluto, local o visitante  ########
++ Diferencia de puntos entre local y visitante (local-visitante)  ########
++ Numero de disparos a puerta, goles, disparos en general, resultado y rojas recibidas local/visitante el partido anterior. En absoluto y separado por local/visitante  ########
+
+++ Porcen_home_puntos/ Porcen_away_puntos: Porcentaje de puntos respecto el total posible hasta el partido anterior del equipo local en casa y del equipo visitante como visitante.
+
+++ Porcen_total_puntos_1/Porcen_total_puntos_2: Porcentaje de puntos respecto el total posible hasta el partido anterior del equipo local (puntos_1) y del equipo visitante (puntos_2). Este dato es el equivalente a la clasificación de los equipos, ya que cuanto más porcentaje de puntos un equipo alcanza, su clasificación es mejor.
+
+++Porcent_home_goles_propios/Porcen_home_goles_ajenos/Porcen_home_goles_totales: Media de goles propios, ajenos y total del equipo local (solo cuentan los partidos como local)
+
+++ Porcent_away_goles_propios/Porcen_away_goles_ajenos/Porcent_away_go les_totales: Media de goles propios, ajenos y total del equipo visitante (solo cuentan los partidos como visitante)
+
+## Jornada
+
+Vamos a crear la variable jornada. Vemos que tenemos un problema con las jornadas, ya que no todos los equipos van juntos en las jornadas(en la mayoria de los casos si que nos ocurre esto, pero no siempre). Por lo tanto, para evitar este problema lo que haremos sera crear dos variables de jornadas en la que se diferencia el caso del equipo de casa y el del visitante. Asumiremos pues que tengamos un pequeño desfase. Lo cual no es un gran problema.
+
+```{r creac_jornada, message=FALSE}
+
+# tenemos que dividir los partidos de casa y los de fuera para luego juntarlos en una misma columna y asi poder hacer una secuencia temporal que siga el orden de los partido, esto es de las jornadas.
+
+jornad<- function(x){
+  
+  x_cas<- x %>% mutate(equi=HomeTeam) %>% select(-AwayTeam, -HomeTeam)
+
+  x_fue<- x %>% mutate(equi=AwayTeam) %>% select(-AwayTeam, -HomeTeam)
+
+  x_cafu<- rbind(x_cas, x_fue)
+
+
+  x_cafu<- x_cafu %>% mutate(Date=as.Date(Date)) %>% group_by(equi) %>% arrange(Date) %>% mutate(jornad=seq(1,n())) %>% select(Date, equi, jornad) %>% mutate(Date=as.character(Date))
+
+  names(x_cafu)<- c("Date","HomeTeam", "jornada_casa")
+
+  x<- left_join(x, x_cafu)
+
+  names(x_cafu)<- c("Date","AwayTeam", "jornada_fuer")
+
+  x<- left_join(x, x_cafu)
+  
+  return(x)
+  
+}
+
+df04_A<- jornad(df04_A)
+df05<- jornad(df05)
+df06<- jornad(df06)
+df07<- jornad(df07)
+df08<- jornad(df08)
+df09<- jornad(df09)
+df10<- jornad(df10)
+df11<- jornad(df11)
+df12<- jornad(df12)
+df13<- jornad(df13)
+df14<- jornad(df14)
+df15<- jornad(df15)
+df16<- jornad(df16)
+df17<- jornad(df17)
+df18<- jornad(df18)
+df19<- jornad(df19)
+df20<- jornad(df20)
+
+########
+
+df04_2_A<- jornad(df04_2_A)
+df05_2<- jornad(df05_2)
+df06_2<- jornad(df06_2)
+df07_2<- jornad(df07_2)
+df08_2<- jornad(df08_2)
+df09_2<- jornad(df09_2)
+df10_2<- jornad(df10_2)
+df11_2<- jornad(df11_2)
+df12_2<- jornad(df12_2)
+df13_2<- jornad(df13_2)
+df14_2<- jornad(df14_2)
+df15_2<- jornad(df15_2)
+df16_2<- jornad(df16_2)
+df17_2<- jornad(df17_2)
+df18_2<- jornad(df18_2)
+df19_2<- jornad(df19_2)
+df20_2<- jornad(df20_2)
+
+
+
+```
+
+## Puntuación
+
+Ahora calcularemos los puntos que va consiguiendo cada equipo en cada jornada
+
+```{r resultado, message=TRUE}
+
+# FTHG FTAG
+
+puntos<- function(x){
+  
+  x<- x %>% mutate(res_casa= ifelse(FTHG>FTAG, 3,ifelse(FTHG==FTAG,1,ifelse(FTHG<FTAG,0,NA))),
+                       res_fuer= ifelse(FTHG<FTAG, 3,ifelse(FTHG==FTAG,1,ifelse(FTHG>FTAG,0,NA))))
+
+  x_casa<- x %>% select(HomeTeam, jornada_casa, res_casa)
+  names(x_casa)<- c("equip","jornada", "resul")
+
+  x_fuer<- x %>% select(AwayTeam, jornada_fuer, res_fuer)
+  names(x_fuer)<- c("equip","jornada", "resul")
+
+  x_punto<- rbind(x_casa, x_fuer)
+
+  x_punto<- x_punto %>% group_by(equip) %>% arrange(jornada) %>% mutate(puntos=cumsum(resul))
+  
+  # Nos interesa saber cuantos puntos tenia cuando empezo el partido. No cuando acabo el partido contando el resultado del partido
+  x_punto<- x_punto %>% group_by(equip) %>% arrange(jornada) %>% mutate(puntos=lag(puntos)) %>% mutate(puntos=ifelse(is.na(puntos),0,puntos))
+
+  x_punto<- x_punto %>% select(-resul)
+
+  names(x_punto)<- c("HomeTeam", "jornada_casa", "puntos_local")
+
+  x<- left_join(x, x_punto, by=c("HomeTeam", "jornada_casa"))
+
+  names(x_punto)<- c("AwayTeam", "jornada_fuer", "puntos_visit")
+
+  x<- left_join(x, x_punto, by=c("AwayTeam", "jornada_fuer"))
+  
+  return(x)
+  
+}
+
+df04_A<- puntos(df04_A)
+df05<- puntos(df05)
+df06<- puntos(df06)
+df07<- puntos(df07)
+df08<- puntos(df08)
+df09<- puntos(df09)
+df10<- puntos(df10)
+df11<- puntos(df11)
+df12<- puntos(df12)
+df13<- puntos(df13)
+df14<- puntos(df14)
+df15<- puntos(df15)
+df16<- puntos(df16)
+df17<- puntos(df17)
+df18<- puntos(df18)
+df19<- puntos(df19)
+df20<- puntos(df20)
+
+
+###### SEGUNDA
+
+df04_2_A<- puntos(df04_2_A)
+df05_2<- puntos(df05_2)
+df06_2<- puntos(df06_2)
+df07_2<- puntos(df07_2)
+df08_2<- puntos(df08_2)
+df09_2<- puntos(df09_2)
+df10_2<- puntos(df10_2)
+df11_2<- puntos(df11_2)
+df12_2<- puntos(df12_2)
+df13_2<- puntos(df13_2)
+df14_2<- puntos(df14_2)
+df15_2<- puntos(df15_2)
+df16_2<- puntos(df16_2)
+df17_2<- puntos(df17_2)
+df18_2<- puntos(df18_2)
+df19_2<- puntos(df19_2)
+df20_2<- puntos(df20_2)
+
+
+```
+
+## Clasificación
+
+lo siguiente que haremos sera calcular la posición en la liga de cada equipo en cada jornada (en  que posición llegan al partido).
+
+```{r clasificacion, message=FALSE}
+
+clasifica<- function(x){
+  
+  x_casa<- x %>% select(HomeTeam, jornada_casa, puntos_local)
+  names(x_casa)<- c("equi", "jornada", "puntos")
+
+  x_fuera<- x %>% select(AwayTeam, jornada_fuer, puntos_visit)
+  names(x_fuera)<- c("equi", "jornada", "puntos")
+
+  x_punto<- rbind(x_casa, x_fuera)
+
+
+  x_punto<- x_punto %>% group_by(jornada) %>% arrange(desc(puntos)) %>% mutate(clasifi=seq(1, n())) %>% select(equi, jornada, clasifi)
+
+  names(x_punto)<- c("HomeTeam", "jornada_casa", "clasifi_casa")
+
+  x<- left_join(x, x_punto, by=c("HomeTeam","jornada_casa"))
+
+  names(x_punto)<- c("AwayTeam", "jornada_fuer", "clasifi_fuer")
+
+  x<- left_join(x, x_punto, by=c("AwayTeam","jornada_fuer"))
+  
+  return(x)
+}
+
+df04_A<- clasifica(df04_A)
+df05<- clasifica(df05)
+df06<- clasifica(df06)
+df07<- clasifica(df07)
+df08<- clasifica(df08)
+df09<- clasifica(df09)
+df10<- clasifica(df10)
+df11<- clasifica(df11)
+df12<- clasifica(df12)
+df13<- clasifica(df13)
+df14<- clasifica(df14)
+df15<- clasifica(df15)
+df16<- clasifica(df16)
+df17<- clasifica(df17)
+df18<- clasifica(df18)
+df19<- clasifica(df19)
+df20<- clasifica(df20)
+
+
+```
+
+
+# Casas de apuestas
+
+Queremos observar si la media de las cuotas para cada mes de cada variable es inferior o no para el anterior mes. Si es inferior tendra un "1" y sino "0". En el proceso de creación de las variables hemos visto que los resultados que hemos conseguido son practicamente iguales. Por lo que solamente nos quedaremos con una.
+
+```{r apuestas}
+
+# x<- df20
+# y<- df19
+# y_2<- df19_2
+
+juntar_apost<- function(x){
+  
+  x_casa1<- x %>% select(Div, HomeTeam, Date, B365D, BWD, IWD, WHD)
+
+  names(x_casa1)<- c("Div","equip", "Date","B365D", "BWD", "IWD", "WHD")
+
+  x_fuer1<- x %>% select(Div, AwayTeam, Date, B365D, BWD, IWD, WHD)
+
+  names(x_fuer1)<- c("Div","equip", "Date","B365D", "BWD", "IWD", "WHD")
+
+  x_punto<- rbind(x_casa1, x_fuer1)
+  
+  return(x_punto)
+  
+}
+
+apuestas<- function(x, y, y_2){
+  
+  ###############################################
+  ## x: temporada actual                       ##
+  ## y: temporada pasada                       ##
+  ## y_2: temporada pasada de segunda division ##
+  ###############################################
+  
+  ## CASA
+
+  # Pasada temporada
+  y_cas<- data.frame(y) %>% mutate(mes=month(Date)) %>%
+    mutate(mes=ifelse(Div=="2019/2020", ifelse(mes==6 | mes==7, mes-2, mes) ,mes)) %>% mutate(mes=mes+3) %>% filter(mes==7 | mes==8) %>% group_by(HomeTeam,mes) %>%
+    mutate(mes_365B=mean(B365H, na.rm = TRUE),
+           mes_BW=mean(BWH, na.rm = TRUE),
+           mes_IW=mean(IWH, na.rm = TRUE),
+           mes_WH=mean(WHH, na.rm = TRUE)) %>% select(HomeTeam, mes, mes_365B, mes_BW, mes_IW, mes_WH) %>% distinct()
+  
+  # Pasada temporada segunda
+  y_2_cas<- data.frame(y_2) %>% mutate(mes=month(Date)) %>%
+    mutate(mes=ifelse(Div=="2019/2020", ifelse(mes==6 | mes==7, mes-2, mes) ,mes)) %>% mutate(mes=ifelse(mes==6,5,mes)) %>%
+    mutate(mes=mes+3) %>% filter(mes==7 | mes==8) %>% group_by(HomeTeam,mes) %>%
+    mutate(mes_365B=mean(B365H, na.rm = TRUE)*2,
+           mes_BW=mean(BWH, na.rm = TRUE)*2,
+           mes_IW=mean(IWH, na.rm = TRUE)*2,
+           mes_WH=mean(WHH, na.rm = TRUE)*2) %>% select(HomeTeam, mes, mes_365B, mes_BW, mes_IW, mes_WH) %>% distinct() %>%
+     filter(HomeTeam %in% x$HomeTeam)
+  
+  # Presente temporada
+  x_cas<- data.frame(x) %>% mutate(mes=month(Date)) %>%
+    mutate(mes=ifelse(Div=="2019/2020", ifelse(mes==6 | mes==7, mes-2, mes) ,mes)) %>% mutate(mes=ifelse(mes==8,9,mes)) %>%
+    group_by(HomeTeam,mes) %>%
+    mutate(mes_365B=mean(B365H, na.rm = TRUE),
+           mes_BW=mean(BWH, na.rm = TRUE),
+           mes_IW=mean(IWH, na.rm = TRUE),
+           mes_WH=mean(WHH, na.rm = TRUE)) %>% select(HomeTeam, mes, mes_365B, mes_BW, mes_IW, mes_WH) %>% distinct()
+
+  x_cas<- dplyr::bind_rows(x_cas, y_cas)
+
+  x_cas<- dplyr::bind_rows(x_cas, y_2_cas)
+  
+  x_cas<- x_cas %>% mutate(mes=ifelse(mes>6, mes-8,mes+4)) 
+  
+  x_cas<- x_cas %>% group_by(HomeTeam) %>% arrange(mes) %>%
+    mutate(mes_365B=ifelse(lag(mes_365B,1)<lag(mes_365B,2),"1","0"),
+           mes_BW=ifelse(lag(mes_BW,1)<lag(mes_BW,2),"1","0"),
+           mes_IW=ifelse(lag(mes_IW,1)<lag(mes_IW,2),"1","0"),
+           mes_WH=ifelse(lag(mes_WH,1)<lag(mes_WH,2),"1","0"))
+  
+  x_cas<- x_cas %>% select(HomeTeam, mes, mes_365B) %>% filter(mes>0) %>% mutate(mes=ifelse(mes<5, mes+8,mes-4)) 
+
+
+  ## FUERA 
+
+  # Pasada temporada
+  y_fuer<- data.frame(y) %>% mutate(mes=month(Date)) %>%
+    mutate(mes=ifelse(Div=="2019/2020", ifelse(mes==6 | mes==7, mes-2, mes) ,mes)) %>% mutate(mes=mes+3) %>% filter(mes==7 | mes==8) %>% group_by(AwayTeam,mes) %>%
+    mutate(mes_365B=mean(B365A, na.rm = TRUE),
+           mes_BW=mean(BWA, na.rm = TRUE),
+           mes_IW=mean(IWA, na.rm = TRUE),
+           mes_WH=mean(WHA, na.rm = TRUE)) %>% select(AwayTeam, mes, mes_365B, mes_BW, mes_IW, mes_WH) %>% distinct()
+  
+  # Pasada temporada segunda
+  y_2_fuer<- data.frame(y_2) %>% mutate(mes=month(Date)) %>%
+    mutate(mes=ifelse(Div=="2019/2020", ifelse(mes==6 | mes==7, mes-2, mes) ,mes)) %>% mutate(mes=ifelse(mes==6,5,mes)) %>%
+    mutate(mes=mes+3) %>% filter(mes==7 | mes==8) %>% group_by(AwayTeam,mes) %>%
+    mutate(mes_365B=mean(B365A, na.rm = TRUE)*2,
+           mes_BW=mean(BWA, na.rm = TRUE)*2,
+           mes_IW=mean(IWA, na.rm = TRUE)*2,
+           mes_WH=mean(WHA, na.rm = TRUE)*2) %>% select(AwayTeam, mes, mes_365B, mes_BW, mes_IW, mes_WH) %>% distinct() %>%
+     filter(AwayTeam %in% x$AwayTeam)
+  
+  # Presente temporada
+  x_fuer<- data.frame(x) %>% mutate(mes=month(Date)) %>%
+    mutate(mes=ifelse(Div=="2019/2020", ifelse(mes==6 | mes==7, mes-2, mes) ,mes)) %>% mutate(mes=ifelse(mes==8,9,mes)) %>% group_by(AwayTeam,mes) %>%
+    mutate(mes_365B=mean(B365A, na.rm = TRUE),
+           mes_BW=mean(BWA, na.rm = TRUE),
+           mes_IW=mean(IWA, na.rm = TRUE),
+           mes_WH=mean(WHA, na.rm = TRUE)) %>% select(AwayTeam, mes, mes_365B, mes_BW, mes_IW, mes_WH) %>% distinct()
+
+  x_fuer<- dplyr::bind_rows(x_fuer, y_fuer)
+
+  x_fuer<- dplyr::bind_rows(x_fuer, y_2_fuer)
+  
+  x_fuer<- x_fuer %>% mutate(mes=ifelse(mes>6, mes-8,mes+4)) 
+  
+  x_fuer<- x_fuer %>% group_by(AwayTeam) %>% arrange(mes) %>%
+    mutate(mes_365B=ifelse(lag(mes_365B,1)<lag(mes_365B,2),"1","0"),
+           mes_BW=ifelse(lag(mes_BW,1)<lag(mes_BW,2),"1","0"),
+           mes_IW=ifelse(lag(mes_IW,1)<lag(mes_IW,2),"1","0"),
+           mes_WH=ifelse(lag(mes_WH,1)<lag(mes_WH,2),"1","0"))
+  
+  x_fuer<- x_fuer %>% select(AwayTeam, mes, mes_365B) %>% filter(mes>0) %>% mutate(mes=ifelse(mes<5, mes+8,mes-4)) 
+
+  ## ABSOLUTO
+
+  x_punto<- juntar_apost(x)
+  y_punto<- juntar_apost(y)
+  y2_punto<- juntar_apost(y_2)
+  
+  y_punto<- data.frame(y_punto) %>% mutate(mes=month(Date)) %>%
+    mutate(mes=ifelse(Div=="2019/2020", ifelse(mes==6 | mes==7, mes-2, mes) ,mes)) %>% mutate(mes=mes+3) %>% filter(mes==7 | mes==8) %>% group_by(equip,mes) %>%
+    mutate(mes_365B=mean(B365D, na.rm = TRUE),
+           mes_BW=mean(BWD, na.rm = TRUE),
+           mes_IW=mean(IWD, na.rm = TRUE),
+           mes_WH=mean(WHD, na.rm = TRUE)) %>% select(equip, mes, mes_365B, mes_BW, mes_IW, mes_WH) %>% distinct()
+  
+  # Pasada temporada segunda
+  y2_punto<- data.frame(y2_punto) %>% mutate(mes=month(Date)) %>%
+    mutate(mes=ifelse(Div=="2019/2020", ifelse(mes==6 | mes==7, mes-2, mes) ,mes)) %>% mutate(mes=ifelse(mes==6,5,mes)) %>%
+    mutate(mes=mes+3) %>% filter(mes==7 | mes==8) %>% group_by(equip,mes) %>%
+    mutate(mes_365B=mean(B365D, na.rm = TRUE)*2,
+           mes_BW=mean(BWD, na.rm = TRUE)*2,
+           mes_IW=mean(IWD, na.rm = TRUE)*2,
+           mes_WH=mean(WHD, na.rm = TRUE)*2) %>% select(equip, mes, mes_365B, mes_BW, mes_IW, mes_WH) %>% distinct() %>%
+     filter(equip %in% x_punto$equip)
+  
+  # Presente temporada
+  x_punto<- data.frame(x_punto) %>% mutate(mes=month(Date)) %>%
+    mutate(mes=ifelse(Div=="2019/2020", ifelse(mes==6 | mes==7, mes-2, mes) ,mes)) %>% mutate(mes=ifelse(mes==8,9,mes)) %>% group_by(equip,mes) %>%
+    mutate(mes_365B=mean(B365D, na.rm = TRUE),
+           mes_BW=mean(BWD, na.rm = TRUE),
+           mes_IW=mean(IWD, na.rm = TRUE),
+           mes_WH=mean(WHD, na.rm = TRUE)) %>% select(equip, mes, mes_365B, mes_BW, mes_IW, mes_WH) %>% distinct()
+
+  x_punto<- dplyr::bind_rows(x_punto, y_punto)
+
+  x_punto<- dplyr::bind_rows(x_punto, y2_punto)
+  
+  x_punto<- x_punto %>% mutate(mes=ifelse(mes>6, mes-8,mes+4)) 
+  
+  x_punto<- x_punto %>% group_by(equip) %>% arrange(mes) %>%
+    mutate(mes_365B=ifelse(lag(mes_365B,1)<lag(mes_365B,2),"1","0"),
+           mes_BW=ifelse(lag(mes_BW,1)<lag(mes_BW,2),"1","0"),
+           mes_IW=ifelse(lag(mes_IW,1)<lag(mes_IW,2),"1","0"),
+           mes_WH=ifelse(lag(mes_WH,1)<lag(mes_WH,2),"1","0"))
+  
+  x_punto<- x_punto %>% select(equip, mes, mes_365B) %>% filter(mes>0) %>% mutate(mes=ifelse(mes<5, mes+8,mes-4)) 
+  
+  x<- x %>% mutate(mes=month(Date)) %>% mutate(mes=ifelse(mes==8,9,mes)) %>%
+    mutate(mes=ifelse(Div=="2019/2020", ifelse(mes==6 | mes==7, mes-2, mes) ,mes))
+  
+  names(x_cas)<- c("HomeTeam", "mes", "apues_vict_loc")
+  
+  x<- left_join(x, x_cas, by=c("HomeTeam", "mes"))
+  
+  names(x_fuer)<- c("AwayTeam", "mes", "apues_derr_loc")
+  
+  x<- left_join(x, x_fuer, by=c("AwayTeam", "mes"))
+  
+  names(x_punto)<- c("HomeTeam", "mes", "apues_empa_loc")
+  
+  x<- left_join(x, x_punto, by=c("HomeTeam", "mes"))
+
+  x<- x %>% select(-mes)
+  
+  # print(table(is.na(x$apues_vict_loc)))
+  # print(table(is.na(x$apues_derr_loc)))
+  # print(table(is.na(x$apues_empa_loc)))
+  
+  return(x)
+  
+}
+
+# rm(x, y, y_2, x_punto, y_cas, y_2_cas, x_cas, y_fuer, y_2_fuer, x_fuer, y_punto, y2_punto)
+
+df20<- apuestas(df20,df19,df19_2)
+df19<- apuestas(df19,df18,df18_2)
+df18<- apuestas(df18,df17,df17_2)
+df17<- apuestas(df17,df16,df16_2)
+df16<- apuestas(df16,df15,df15_2)
+df15<- apuestas(df15,df14,df14_2)
+df14<- apuestas(df14,df13,df13_2)
+df13<- apuestas(df13,df12,df12_2)
+df12<- apuestas(df12,df11,df11_2)
+df11<- apuestas(df11,df10,df10_2)
+df10<- apuestas(df10,df09,df09_2)
+df09<- apuestas(df09,df08,df08_2)
+df08<- apuestas(df08,df07,df07_2)
+df07<- apuestas(df07,df06,df06_2)
+df06<- apuestas(df06,df05,df05_2)
+df05<- apuestas(df05,df04_A, df04_2_A)
+
+
+
+
+```
+
+## Cuantos Partidos sin ganar
+
+Cuantos Partidos sin ganar desde ultima victoria en la actual liga local/visitante. En absoluto y separado por local/visitante.
+
+```{r no ganar, message=FALSE}
+
+
+partid_no_ganar<- function(x){
+  
+  ## CASA
+  
+  x_casa<- x %>% select(HomeTeam, jornada_casa, res_casa)
+
+  x_casa<- x_casa %>% group_by(HomeTeam) %>% arrange(jornada_casa) %>% mutate(perd=ifelse(lag(res_casa)==0 | lag(res_casa)==1,1,0)) %>% mutate(perd=ifelse(is.na(perd),0,perd))
+
+  x_casa<- x_casa %>% group_by(HomeTeam) %>% arrange(jornada_casa) %>% mutate(indx = c(0,cumsum(as.numeric(lead(perd)) !=
+                     as.numeric(perd))[-n()]))
+
+  x_casa<- x_casa %>% group_by(HomeTeam, indx) %>% arrange(jornada_casa) %>% mutate(cant_no_gana_casa_local=1:n())
+
+  x_casa<- x_casa %>% mutate(cant_no_gana_casa_local=ifelse(perd==0, 0, cant_no_gana_casa_local)) %>% ungroup()
+
+  x_casa<- x_casa %>% select(HomeTeam, jornada_casa, cant_no_gana_casa_local)
+
+## FUERA
+
+  x_fuer<- x %>% select(AwayTeam, jornada_fuer, res_fuer)
+
+  x_fuer<- x_fuer %>% group_by(AwayTeam) %>% arrange(jornada_fuer) %>% mutate(perd=ifelse(lag(res_fuer)==0 | lag(res_fuer)==1,1,0)) %>% mutate(perd=ifelse(is.na(perd),0,perd))
+
+  x_fuer<- x_fuer %>% group_by(AwayTeam) %>% arrange(jornada_fuer) %>% mutate(indx = c(0,cumsum(as.numeric(lead(perd)) !=
+                     as.numeric(perd))[-n()]))
+
+  x_fuer<- x_fuer %>% group_by(AwayTeam, indx) %>% arrange(jornada_fuer) %>% mutate(cant_no_gana_fuera_visit=1:n())
+
+  x_fuer<- x_fuer %>% mutate(cant_no_gana_fuera_visit=ifelse(perd==0, 0, cant_no_gana_fuera_visit)) %>% ungroup()
+
+  x_fuer<- x_fuer %>% select(AwayTeam, jornada_fuer, cant_no_gana_fuera_visit)
+
+  ## ABSOLUTO
+
+  x_casa1<- x %>% select(HomeTeam, jornada_casa, res_casa)
+
+  names(x_casa1)<- c("equip","jornada", "resul")
+
+  x_fuer1<- x %>% select(AwayTeam, jornada_fuer, res_fuer)
+
+  names(x_fuer1)<- c("equip","jornada", "resul")
+
+  x_punto<- rbind(x_casa1, x_fuer1)
+
+  x_punto<- x_punto %>% group_by(equip) %>% arrange(jornada) %>% mutate(perd=ifelse(lag(resul)==0 | lag(resul)==1,1,0)) %>% mutate(perd=ifelse(is.na(perd),0,perd))
+
+  x_punto<- x_punto %>% group_by(equip) %>% arrange(jornada) %>% mutate(indx = c(0,cumsum(as.numeric(lead(perd)) !=
+                     as.numeric(perd))[-n()]))
+
+  x_punto<- x_punto %>% group_by(equip, indx) %>% arrange(jornada) %>% mutate(cant_no_gana_abso=1:n())
+
+  x_punto<- x_punto %>% mutate(cant_no_gana_abso=ifelse(perd==0, 0, cant_no_gana_abso)) %>% ungroup()
+
+  x_punto<- x_punto %>% select(equip, jornada, cant_no_gana_abso)
+
+  names(x_punto)<- c("HomeTeam","jornada_casa", "cant_no_gana_abso_local")
+
+  x_casa<- left_join(x_casa, x_punto, by=c("HomeTeam","jornada_casa"))
+
+  names(x_punto)<- c("AwayTeam","jornada_fuer", "cant_no_gana_abso_visit")
+
+  x_fuer<- left_join(x_fuer, x_punto, by=c("AwayTeam","jornada_fuer"))
+
+  x<- left_join(x, x_casa, by=c("HomeTeam","jornada_casa"))
+
+  x<- left_join(x, x_fuer, by=c("AwayTeam","jornada_fuer"))
+  
+  return(x)
+  
+}
+
+df04_A<- partid_no_ganar(df04_A)
+df05<- partid_no_ganar(df05)
+df06<- partid_no_ganar(df06)
+df07<- partid_no_ganar(df07)
+df08<- partid_no_ganar(df08)
+df09<- partid_no_ganar(df09)
+df10<- partid_no_ganar(df10)
+df11<- partid_no_ganar(df11)
+df12<- partid_no_ganar(df12)
+df13<- partid_no_ganar(df13)
+df14<- partid_no_ganar(df14)
+df15<- partid_no_ganar(df15)
+df16<- partid_no_ganar(df16)
+df17<- partid_no_ganar(df17)
+df18<- partid_no_ganar(df18)
+df19<- partid_no_ganar(df19)
+df20<- partid_no_ganar(df20)
+
+
+```
+
+## Cuantos Partidos ganados
+
+Numero de partidos ganados consecutivos local/visitante. En absoluto y separado por local/visitante
+
+```{r ganar, message=FALSE}
+
+partid_ganar<- function(x){
+  
+  ## CASA
+  
+  x_casa<- x %>% select(HomeTeam, jornada_casa, res_casa)
+
+  x_casa<- x_casa %>% group_by(HomeTeam) %>% arrange(jornada_casa) %>% mutate(ganar=ifelse(lag(res_casa)==3,1,0)) %>% mutate(ganar=ifelse(is.na(ganar),0,ganar))
+
+  x_casa<- x_casa %>% group_by(HomeTeam) %>% arrange(jornada_casa) %>% mutate(indx = c(0,cumsum(as.numeric(lead(ganar)) !=
+                     as.numeric(ganar))[-n()]))
+
+  x_casa<- x_casa %>% group_by(HomeTeam, indx) %>% arrange(jornada_casa) %>% mutate(cant_gana_casa_local=1:n())
+
+  x_casa<- x_casa %>% mutate(cant_gana_casa_local=ifelse(ganar==0, 0, cant_gana_casa_local)) %>% ungroup()
+
+  x_casa<- x_casa %>% select(HomeTeam, jornada_casa, cant_gana_casa_local)
+
+  ## FUERA
+
+  x_fuer<- x %>% select(AwayTeam, jornada_fuer, res_fuer)
+
+  x_fuer<- x_fuer %>% group_by(AwayTeam) %>% arrange(jornada_fuer) %>% mutate(ganar=ifelse(lag(res_fuer)==3,1,0)) %>% mutate(ganar=ifelse(is.na(ganar),0,ganar))
+
+  x_fuer<- x_fuer %>% group_by(AwayTeam) %>% arrange(jornada_fuer) %>% mutate(indx = c(0,cumsum(as.numeric(lead(ganar)) !=
+                     as.numeric(ganar))[-n()]))
+
+  x_fuer<- x_fuer %>% group_by(AwayTeam, indx) %>% arrange(jornada_fuer) %>% mutate(cant_gana_fuera_visit=1:n())
+
+  x_fuer<- x_fuer %>% mutate(cant_gana_fuera_visit=ifelse(ganar==0, 0, cant_gana_fuera_visit)) %>% ungroup()
+
+  x_fuer<- x_fuer %>% select(AwayTeam, jornada_fuer, cant_gana_fuera_visit)
+
+  ## ABSOLUTO
+
+  x_casa1<- x %>% select(HomeTeam, jornada_casa, res_casa)
+
+  names(x_casa1)<- c("equip","jornada", "resul")
+
+  x_fuer1<- x %>% select(AwayTeam, jornada_fuer, res_fuer)
+
+  names(x_fuer1)<- c("equip","jornada", "resul")
+
+  x_punto<- rbind(x_casa1, x_fuer1)
+
+  x_punto<- x_punto %>% group_by(equip) %>% arrange(jornada) %>% mutate(ganar=ifelse(lag(resul)==3,1,0)) %>% mutate(ganar=ifelse(is.na(ganar),0,ganar))
+
+  x_punto<- x_punto %>% group_by(equip) %>% arrange(jornada) %>% mutate(indx = c(0,cumsum(as.numeric(lead(ganar)) !=
+                     as.numeric(ganar))[-n()]))
+
+  x_punto<- x_punto %>% group_by(equip, indx) %>% arrange(jornada) %>% mutate(cant_gana_abso=1:n())
+
+  x_punto<- x_punto %>% mutate(cant_gana_abso=ifelse(ganar==0, 0, cant_gana_abso)) %>% ungroup()
+
+  x_punto<- x_punto %>% select(equip, jornada, cant_gana_abso)
+
+  names(x_punto)<- c("HomeTeam","jornada_casa", "cant_gana_abso_local")
+
+  x_casa<- left_join(x_casa, x_punto, by=c("HomeTeam","jornada_casa"))
+
+  names(x_punto)<- c("AwayTeam","jornada_fuer", "cant_gana_abso_visit")
+
+  x_fuer<- left_join(x_fuer, x_punto, by=c("AwayTeam","jornada_fuer"))
+
+  x<- left_join(x, x_casa)
+
+  x<- left_join(x, x_fuer)
+  
+  return(x)
+  
+}
+
+df04_A<- partid_ganar(df04_A)
+df05<- partid_ganar(df05)
+df06<- partid_ganar(df06)
+df07<- partid_ganar(df07)
+df08<- partid_ganar(df08)
+df09<- partid_ganar(df09)
+df10<- partid_ganar(df10)
+df11<- partid_ganar(df11)
+df12<- partid_ganar(df12)
+df13<- partid_ganar(df13)
+df14<- partid_ganar(df14)
+df15<- partid_ganar(df15)
+df16<- partid_ganar(df16)
+df17<- partid_ganar(df17)
+df18<- partid_ganar(df18)
+df19<- partid_ganar(df19)
+df20<- partid_ganar(df20)
+
+###### SEGUNDA
+
+df04_2_A<- partid_ganar(df04_2_A)
+df05_2<- partid_ganar(df05_2)
+df06_2<- partid_ganar(df06_2)
+df07_2<- partid_ganar(df07_2)
+df08_2<- partid_ganar(df08_2)
+df09_2<- partid_ganar(df09_2)
+df10_2<- partid_ganar(df10_2)
+df11_2<- partid_ganar(df11_2)
+df12_2<- partid_ganar(df12_2)
+df13_2<- partid_ganar(df13_2)
+df14_2<- partid_ganar(df14_2)
+df15_2<- partid_ganar(df15_2)
+df16_2<- partid_ganar(df16_2)
+df17_2<- partid_ganar(df17_2)
+df18_2<- partid_ganar(df18_2)
+df19_2<- partid_ganar(df19_2)
+df20_2<- partid_ganar(df20_2)
+
+
+
+```
+
+## Cuantos Partidos perdidos
+
+Numero de partidos perdidos consecutivos local/visitante. En absoluto y separado por local/visitante.
+
+```{r perder, message=FALSE}
+
+# x<- df10
+
+partid_perd<- function(x){
+  
+  ## CASA
+  
+  x_casa<- x %>% select(HomeTeam, jornada_casa, res_casa)
+
+  x_casa<- x_casa %>% group_by(HomeTeam) %>% arrange(jornada_casa) %>% mutate(perder=ifelse(lag(res_casa)==0,1,0)) %>% mutate(perder=ifelse(is.na(perder),0,perder))
+
+  x_casa<- x_casa %>% group_by(HomeTeam) %>% arrange(jornada_casa) %>% mutate(indx = c(0,cumsum(as.numeric(lead(perder)) !=
+                     as.numeric(perder))[-n()]))
+
+  x_casa<- x_casa %>% group_by(HomeTeam, indx) %>% arrange(jornada_casa) %>% mutate(cant_perd_casa_local=1:n())
+
+  x_casa<- x_casa %>% mutate(cant_perd_casa_local=ifelse(perder==0, 0, cant_perd_casa_local)) %>% ungroup()
+
+  x_casa<- x_casa %>% select(HomeTeam, jornada_casa, cant_perd_casa_local)
+
+  ## FUERA
+
+  x_fuer<- x %>% select(AwayTeam, jornada_fuer, res_fuer)
+
+  x_fuer<- x_fuer %>% group_by(AwayTeam) %>% arrange(jornada_fuer) %>% mutate(perder=ifelse(lag(res_fuer)==0,1,0)) %>% mutate(perder=ifelse(is.na(perder),0,perder))
+
+  x_fuer<- x_fuer %>% group_by(AwayTeam) %>% arrange(jornada_fuer) %>% mutate(indx = c(0,cumsum(as.numeric(lead(perder)) !=
+                     as.numeric(perder))[-n()]))
+
+  x_fuer<- x_fuer %>% group_by(AwayTeam, indx) %>% arrange(jornada_fuer) %>% mutate(cant_perd_fuera_visit=1:n())
+
+  x_fuer<- x_fuer %>% mutate(cant_perd_fuera_visit=ifelse(perder==0, 0, cant_perd_fuera_visit)) %>% ungroup()
+
+  x_fuer<- x_fuer %>% select(AwayTeam, jornada_fuer, cant_perd_fuera_visit)
+
+  ## ABSOLUTO
+
+  x_casa1<- x %>% select(HomeTeam, jornada_casa, res_casa)
+
+  names(x_casa1)<- c("equip","jornada", "resul")
+
+  x_fuer1<- x %>% select(AwayTeam, jornada_fuer, res_fuer)
+
+  names(x_fuer1)<- c("equip","jornada", "resul")
+
+  x_punto<- rbind(x_casa1, x_fuer1)
+
+  x_punto<- x_punto %>% group_by(equip) %>% arrange(jornada) %>% mutate(perder=ifelse(lag(resul)==0,1,0)) %>% mutate(perder=ifelse(is.na(perder),0,perder))
+
+  x_punto<- x_punto %>% group_by(equip) %>% arrange(jornada) %>% mutate(indx = c(0,cumsum(as.numeric(lead(perder)) !=
+                     as.numeric(perder))[-n()]))
+
+  x_punto<- x_punto %>% group_by(equip, indx) %>% arrange(jornada) %>% mutate(cant_perd_abso=1:n())
+
+  x_punto<- x_punto %>% mutate(cant_perd_abso=ifelse(perder==0, 0, cant_perd_abso)) %>% ungroup()
+
+  x_punto<- x_punto %>% select(equip, jornada, cant_perd_abso)
+
+  names(x_punto)<- c("HomeTeam","jornada_casa", "cant_perd_abso_local")
+
+  x_casa<- left_join(x_casa, x_punto,  by=c("HomeTeam","jornada_casa"))
+
+  names(x_punto)<- c("AwayTeam","jornada_fuer", "cant_perd_abso_visit")
+
+  x_fuer<- left_join(x_fuer, x_punto, by=c("AwayTeam","jornada_fuer"))
+
+  x<- left_join(x, x_casa)
+
+  x<- left_join(x, x_fuer)
+  
+  return(x)
+  
+}
+
+df04_A<- partid_perd(df04_A)
+df05<- partid_perd(df05)
+df06<- partid_perd(df06)
+df07<- partid_perd(df07)
+df08<- partid_perd(df08)
+df09<- partid_perd(df09)
+df10<- partid_perd(df10)
+df11<- partid_perd(df11)
+df12<- partid_perd(df12)
+df13<- partid_perd(df13)
+df14<- partid_perd(df14)
+df15<- partid_perd(df15)
+df16<- partid_perd(df16)
+df17<- partid_perd(df17)
+df18<- partid_perd(df18)
+df19<- partid_perd(df19)
+df20<- partid_perd(df20)
+
+
+###### SEGUNDA
+
+df04_2_A<- partid_perd(df04_2_A)
+df05_2<- partid_perd(df05_2)
+df06_2<- partid_perd(df06_2)
+df07_2<- partid_perd(df07_2)
+df08_2<- partid_perd(df08_2)
+df09_2<- partid_perd(df09_2)
+df10_2<- partid_perd(df10_2)
+df11_2<- partid_perd(df11_2)
+df12_2<- partid_perd(df12_2)
+df13_2<- partid_perd(df13_2)
+df14_2<- partid_perd(df14_2)
+df15_2<- partid_perd(df15_2)
+df16_2<- partid_perd(df16_2)
+df17_2<- partid_perd(df17_2)
+df18_2<- partid_perd(df18_2)
+df19_2<- partid_perd(df19_2)
+df20_2<- partid_perd(df20_2)
+
+
+
+```
+
+## Puesto en el que acabo el año anterior
+
+Para los equipos que ascendieron el año pasado les colocaremos de igual modo el puesto 21.
+
+```{r puesto anterior, message=FALSE}
+
+na_fun<- function(x){
+  x <-ifelse(is.na(x),21,x)
+  return(x)
+}
+
+
+posi_lig_pas<- function(x,y){
+  
+  y_clas<- y %>% select(HomeTeam, jornada_casa, clasifi_casa)
+  names(y_clas)<- c("equi", "jornada", "clasifi")
+
+  y_fuera<- y %>% select(AwayTeam, jornada_fuer, clasifi_fuer)
+  names(y_fuera)<- c("equi", "jornada", "clasifi")
+
+  y_junt<- rbind(y_clas, y_fuera)
+
+  y_junt<- y_junt %>% filter(jornada==38 | jornada==19) %>% arrange(jornada)
+
+  y_junt<- y_junt %>% spread(key= jornada, value= clasifi)
+
+  names(y_junt)<- c("HomeTeam", "posicion_media_local", "posicion_final_local")
+
+  x<- left_join(x, y_junt, by=c("HomeTeam"))
+
+  names(y_junt)<- c("AwayTeam", "posicion_media_visit", "posicion_final_visit")
+
+  x<- left_join(x, y_junt, by=c("AwayTeam"))
+
+  x<- x %>% mutate_at(c("posicion_media_local", "posicion_final_local", "posicion_media_visit", "posicion_final_visit"), na_fun)
+  
+  return(x)
+  
+}
+
+df20<- posi_lig_pas(df20,df19)
+df19<- posi_lig_pas(df19,df18)
+df18<- posi_lig_pas(df18,df17)
+df17<- posi_lig_pas(df17,df16)
+df16<- posi_lig_pas(df16,df15)
+df15<- posi_lig_pas(df15,df14)
+df14<- posi_lig_pas(df14,df13)
+df13<- posi_lig_pas(df13,df12)
+df12<- posi_lig_pas(df12,df11)
+df11<- posi_lig_pas(df11,df10)
+df10<- posi_lig_pas(df10,df09)
+df09<- posi_lig_pas(df09,df08)
+df08<- posi_lig_pas(df08,df07)
+df07<- posi_lig_pas(df07,df06)
+df06<- posi_lig_pas(df06,df05)
+df05<- posi_lig_pas(df05,df04_A)
+
+
+
+
+```
+
+## Puntuación 5 partidos
+
+Puntuación de los ultimos 5 partidos (1: ganar, 0: empatar: -1:perder) en absoluto, local o visitante. Para este caso, para las primeras cuatro jornadas iremos cogiendo de los partidos que se hayan transcurrido en la anterior temporada.
+
+```{r puntu5, message=FALSE}
+
+juntar_parti<- function(x){
+  
+  x_casa1<- x %>% select(HomeTeam, jornada_casa, res_casa)
+
+  names(x_casa1)<- c("equip","jornada", "resul")
+
+  x_fuer1<- x %>% select(AwayTeam, jornada_fuer, res_fuer)
+
+  names(x_fuer1)<- c("equip","jornada", "resul")
+
+  x_punto<- rbind(x_casa1, x_fuer1)
+  
+  return(x_punto)
+  
+}
+
+
+part5_acum<- function(x, y, y_2){
+  
+  ###############################################
+  ## x: temporada actual                       ##
+  ## y: temporada pasada                       ##
+  ## y_2: temporada pasada de segunda division ##
+  ###############################################
+  
+  ## CASA
+
+  y_cas<- data.frame(y) %>% arrange(desc(jornada_casa)) %>% group_by(HomeTeam) %>% filter(row_number()<6) %>% select(HomeTeam, jornada_casa, res_casa) %>% mutate(jornada_casa=jornada_casa-38)
+
+  y_2_cas<- data.frame(y_2) %>% arrange(desc(jornada_casa)) %>% group_by(HomeTeam) %>% filter(row_number()<6) %>% select(HomeTeam, jornada_casa, res_casa) %>% filter(HomeTeam %in% x$HomeTeam) %>% mutate(jornada_casa=jornada_casa-42, res_casa=res_casa/2)
+
+  x_cas<- data.frame(x) %>% select(HomeTeam, jornada_casa, res_casa) %>% mutate(jornada_casa=as.numeric(jornada_casa))
+
+  x_cas<- dplyr::bind_rows(x_cas, y_cas)
+
+  x_cas<- dplyr::bind_rows(x_cas, y_2_cas)
+
+  x_cas<- x_cas %>% arrange(jornada_casa) %>% group_by(HomeTeam) %>% mutate(acumu_5part_local= lag(res_casa, 5)+lag(res_casa, 4)+lag(res_casa, 3)+lag(res_casa, 2)+lag(res_casa, 1)) %>% filter(!is.na(acumu_5part_local)) %>% select(-res_casa)
+
+
+  ## FUERA 
+
+  y_fuer<- data.frame(y) %>% arrange(desc(jornada_fuer)) %>% group_by(AwayTeam) %>% filter(row_number()<6) %>% select(AwayTeam, jornada_fuer, res_fuer) %>% mutate(jornada_fuer=jornada_fuer-38)
+
+  y_2_fuer<- data.frame(y_2) %>% arrange(desc(jornada_fuer)) %>% group_by(AwayTeam) %>% filter(row_number()<6) %>% select(AwayTeam, jornada_fuer, res_fuer) %>% filter(AwayTeam %in% x$AwayTeam) %>% mutate(jornada_fuer=jornada_fuer-42, res_fuer=res_fuer/2)
+
+  x_fuer<- data.frame(x) %>% select(AwayTeam, jornada_fuer, res_fuer) %>% mutate(jornada_fuer=as.numeric(jornada_fuer))
+
+  x_fuer<- dplyr::bind_rows(x_fuer, y_fuer)
+
+  x_fuer<- dplyr::bind_rows(x_fuer, y_2_fuer)
+
+  x_fuer<- x_fuer %>% arrange(jornada_fuer) %>% group_by(AwayTeam) %>% mutate(acumu_5part_visit= lag(res_fuer, 5)+lag(res_fuer, 4)+lag(res_fuer, 3)+lag(res_fuer, 2)+lag(res_fuer, 1)) %>% filter(!is.na(acumu_5part_visit)) %>% select(-res_fuer)
+
+  ## ABSOLUTO
+
+  x_punto<- juntar_parti(x)
+  y_punto<- juntar_parti(y)
+  y2_punto<- juntar_parti(y_2)
+
+  y_abso<- data.frame(y_punto) %>% arrange(desc(jornada)) %>% group_by(equip) %>% filter(row_number()<6) %>% select(equip, jornada, resul) %>% mutate(jornada=jornada-38)
+
+  y_2_abso<- data.frame(y2_punto) %>% arrange(desc(jornada)) %>% group_by(equip) %>% filter(row_number()<6) %>% select(equip, jornada, resul) %>% filter(equip %in% x_punto$equip) %>% mutate(jornada=jornada-42, resul=resul/2)
+
+  x_abso<- data.frame(x_punto) %>% select(equip, jornada, resul) %>% mutate(jornada=as.numeric(jornada))
+
+  x_abso<- dplyr::bind_rows(x_abso, y_abso)
+
+  x_abso<- dplyr::bind_rows(x_abso, y_2_abso)
+
+  x_abso<- x_abso %>% arrange(jornada) %>% group_by(equip) %>% mutate(acumu_5part_abso= lag(resul, 5)+lag(resul, 4)+lag(resul, 3)+lag(resul, 2)+lag(resul, 1)) %>% filter(!is.na(acumu_5part_abso)) %>% select(-resul)
+  
+  x<- left_join(x, x_cas)
+  
+  x<- left_join(x, x_fuer)
+  
+  names(x_abso)<- c("HomeTeam", "jornada_casa", "acumu_5part_local_abso")
+  
+  x<- left_join(x, x_abso, by=c("HomeTeam", "jornada_casa"))
+  
+  names(x_abso)<- c("AwayTeam", "jornada_fuer", "acumu_5part_visit_abso")
+
+  x<- left_join(x, x_abso, by=c("AwayTeam", "jornada_fuer"))
+  
+  return(x)
+  
+}
+
+#  rm(x, y, y_2, x_casa1, x_punto, y_cas, y_2_cas, x_cas, y_fuer, y_2_fuer, x_fuer, y_punto, y2_punto, y_2_abso, x_abso, y_abso)
+
+df20<- part5_acum(df20,df19,df19_2)
+df19<- part5_acum(df19,df18,df18_2)
+df18<- part5_acum(df18,df17,df17_2)
+df17<- part5_acum(df17,df16,df16_2)
+df16<- part5_acum(df16,df15,df15_2)
+df15<- part5_acum(df15,df14,df14_2)
+df14<- part5_acum(df14,df13,df13_2)
+df13<- part5_acum(df13,df12,df12_2)
+df12<- part5_acum(df12,df11,df11_2)
+df11<- part5_acum(df11,df10,df10_2)
+df10<- part5_acum(df10,df09,df09_2)
+df09<- part5_acum(df09,df08,df08_2)
+df08<- part5_acum(df08,df07,df07_2)
+df07<- part5_acum(df07,df06,df06_2)
+df06<- part5_acum(df06,df05,df05_2)
+df05<- part5_acum(df05,df04_A, df04_2_A)
+
+
+```
+
+## Goles encajados 3
+
+Goles encajados en los 3 ultimos partidos en absoluto, local o visitante. Para los casos en los que el equipo haya recibido goles en segunda división los goles valdran el doble.
+
+```{r gol3enca, message=FALSE}
+
+
+juntar_parti2<- function(x){
+  
+  x_casa1<- x %>% select(HomeTeam, jornada_casa, FTAG)
+
+  names(x_casa1)<- c("equip","jornada", "goles")
+
+  x_fuer1<- x %>% select(AwayTeam, jornada_fuer, FTHG)
+
+  names(x_fuer1)<- c("equip","jornada", "goles")
+
+  x_punto<- rbind(x_casa1, x_fuer1)
+  
+  return(x_punto)
+  
+}
+
+  
+gol3_enca<- function(x, y, y_2){
+  
+  ###############################################
+  ## x: temporada actual                       ##
+  ## y: temporada pasada                       ##
+  ## y_2: temporada pasada de segunda division ##
+  ###############################################
+  
+  ## CASA
+
+# Seleccionamos los goles del rival con la variable FTAG
+  y_cas<- data.frame(y) %>% arrange(desc(jornada_casa)) %>% group_by(HomeTeam) %>% filter(row_number()<4) %>% select(HomeTeam, jornada_casa, FTAG) %>% mutate(jornada_casa=jornada_casa-38)
+
+  y_2_cas<- data.frame(y_2) %>% arrange(desc(jornada_casa)) %>% group_by(HomeTeam) %>% filter(row_number()<4) %>% select(HomeTeam, jornada_casa, FTAG) %>% filter(HomeTeam %in% x$HomeTeam) %>% mutate(jornada_casa=jornada_casa-42, FTAG=FTAG*2)
+
+  x_cas<- data.frame(x) %>% select(HomeTeam, jornada_casa, FTAG) %>% mutate(jornada_casa=as.numeric(jornada_casa))
+
+  x_cas<- dplyr::bind_rows(x_cas, y_cas)
+
+  x_cas<- dplyr::bind_rows(x_cas, y_2_cas)
+
+  x_cas<- x_cas %>% arrange(jornada_casa) %>% group_by(HomeTeam) %>% mutate(acumu_enc3gol_local= lag(FTAG, 3)+lag(FTAG, 2)+lag(FTAG, 1)) %>% filter(!is.na(acumu_enc3gol_local)) %>% select(-FTAG)
+
+
+  ## FUERA 
+
+  y_fuer<- data.frame(y) %>% arrange(desc(jornada_fuer)) %>% group_by(AwayTeam) %>% filter(row_number()<4) %>% select(AwayTeam, jornada_fuer, FTHG) %>% mutate(jornada_fuer=jornada_fuer-38)
+
+  y_2_fuer<- data.frame(y_2) %>% arrange(desc(jornada_fuer)) %>% group_by(AwayTeam) %>% filter(row_number()<4) %>% select(AwayTeam, jornada_fuer, FTHG) %>% filter(AwayTeam %in% x$AwayTeam) %>% mutate(jornada_fuer=jornada_fuer-42, FTHG=FTHG*2)
+
+  x_fuer<- data.frame(x) %>% select(AwayTeam, jornada_fuer, FTHG) %>% mutate(jornada_fuer=as.numeric(jornada_fuer))
+
+  x_fuer<- dplyr::bind_rows(x_fuer, y_fuer)
+
+  x_fuer<- dplyr::bind_rows(x_fuer, y_2_fuer)
+
+  x_fuer<- x_fuer %>% arrange(jornada_fuer) %>% group_by(AwayTeam) %>% mutate(acumu_enc3gol_visit= lag(FTHG, 3)+lag(FTHG, 2)+lag(FTHG, 1)) %>% filter(!is.na(acumu_enc3gol_visit)) %>% select(-FTHG)
+
+  ## ABSOLUTO
+
+  x_punto<- juntar_parti2(x)
+  y_punto<- juntar_parti2(y)
+  y2_punto<- juntar_parti2(y_2)
+
+  y_abso<- data.frame(y_punto) %>% arrange(desc(jornada)) %>% group_by(equip) %>% filter(row_number()<4) %>% select(equip, jornada, goles) %>% mutate(jornada=jornada-38)
+
+  y_2_abso<- data.frame(y2_punto) %>% arrange(desc(jornada)) %>% group_by(equip) %>% filter(row_number()<4) %>% select(equip, jornada, goles) %>% filter(equip %in% x_punto$equip) %>% mutate(jornada=jornada-42, goles=goles*2)
+
+  x_abso<- data.frame(x_punto) %>% select(equip, jornada, goles) %>% mutate(jornada=as.numeric(jornada))
+
+  x_abso<- dplyr::bind_rows(x_abso, y_abso)
+
+  x_abso<- dplyr::bind_rows(x_abso, y_2_abso)
+
+  x_abso<- x_abso %>% arrange(jornada) %>% group_by(equip) %>% mutate(acumu_enc3gol_abso= lag(goles, 3)+lag(goles, 2)+lag(goles, 1)) %>% filter(!is.na(acumu_enc3gol_abso)) %>% select(-goles)
+  
+  x<- left_join(x, x_cas)
+  
+  x<- left_join(x, x_fuer)
+  
+  names(x_abso)<- c("HomeTeam", "jornada_casa", "acumu_enc3gol_local_abso")
+  
+  x<- left_join(x, x_abso, by=c("HomeTeam", "jornada_casa"))
+  
+  names(x_abso)<- c("AwayTeam", "jornada_fuer", "acumu_enc3gol_visit_abso")
+
+  x<- left_join(x, x_abso, by=c("AwayTeam", "jornada_fuer"))
+  
+  return(x)
+  
+}
+
+# rm(x, y, y_2, x_casa1, x_punto, y_cas, y_2_cas, x_cas, y_fuer, y_2_fuer, x_fuer, y_punto, y2_punto, y_2_abso, x_abso, y_abso)
+
+df20<- gol3_enca(df20,df19,df19_2)
+df19<- gol3_enca(df19,df18,df18_2)
+df18<- gol3_enca(df18,df17,df17_2)
+df17<- gol3_enca(df17,df16,df16_2)
+df16<- gol3_enca(df16,df15,df15_2)
+df15<- gol3_enca(df15,df14,df14_2)
+df14<- gol3_enca(df14,df13,df13_2)
+df13<- gol3_enca(df13,df12,df12_2)
+df12<- gol3_enca(df12,df11,df11_2)
+df11<- gol3_enca(df11,df10,df10_2)
+df10<- gol3_enca(df10,df09,df09_2)
+df09<- gol3_enca(df09,df08,df08_2)
+df08<- gol3_enca(df08,df07,df07_2)
+df07<- gol3_enca(df07,df06,df06_2)
+df06<- gol3_enca(df06,df05,df05_2)
+df05<- gol3_enca(df05,df04_A, df04_2_A)
+
+```
+
+## Goles realizados 3
+
+Goles realizados en los 3 ultimos partidos en absoluto, local o visitante. A los goles realizados en segunda división se les pone una penalización por el echo de ser de segunda división.
+
+```{r gol3reali, message=FALSE}
+
+juntar_parti3<- function(x){
+  
+  x_casa1<- x %>% select(HomeTeam, jornada_casa, FTHG)
+
+  names(x_casa1)<- c("equip","jornada", "goles")
+
+  x_fuer1<- x %>% select(AwayTeam, jornada_fuer, FTAG)
+
+  names(x_fuer1)<- c("equip","jornada", "goles")
+
+  x_punto<- rbind(x_casa1, x_fuer1)
+  
+  return(x_punto)
+  
+}
+
+  
+  gol3_reali<- function(x, y, y_2){
+  
+  ###############################################
+  ## x: temporada actual                       ##
+  ## y: temporada pasada                       ##
+  ## y_2: temporada pasada de segunda division ##
+  ###############################################
+  
+  ## CASA
+
+# Seleccionamos los goles del equipo con la variable FTHG
+  y_cas<- data.frame(y) %>% arrange(desc(jornada_casa)) %>% group_by(HomeTeam) %>% filter(row_number()<4) %>% select(HomeTeam, jornada_casa, FTHG) %>% mutate(jornada_casa=jornada_casa-38)
+
+  y_2_cas<- data.frame(y_2) %>% arrange(desc(jornada_casa)) %>% group_by(HomeTeam) %>% filter(row_number()<4) %>% select(HomeTeam, jornada_casa, FTHG) %>% filter(HomeTeam %in% x$HomeTeam) %>% mutate(jornada_casa=jornada_casa-42, FTHG=FTHG/2)
+
+  x_cas<- data.frame(x) %>% select(HomeTeam, jornada_casa, FTHG) %>% mutate(jornada_casa=as.numeric(jornada_casa))
+
+  x_cas<- dplyr::bind_rows(x_cas, y_cas)
+
+  x_cas<- dplyr::bind_rows(x_cas, y_2_cas)
+
+  x_cas<- x_cas %>% arrange(jornada_casa) %>% group_by(HomeTeam) %>% mutate(acumu_reali3gol_local= lag(FTHG, 3)+lag(FTHG, 2)+lag(FTHG, 1)) %>% filter(!is.na(acumu_reali3gol_local)) %>% select(-FTHG)
+
+
+  ## FUERA 
+
+  y_fuer<- data.frame(y) %>% arrange(desc(jornada_fuer)) %>% group_by(AwayTeam) %>% filter(row_number()<4) %>% select(AwayTeam, jornada_fuer, FTAG) %>% mutate(jornada_fuer=jornada_fuer-38)
+
+  y_2_fuer<- data.frame(y_2) %>% arrange(desc(jornada_fuer)) %>% group_by(AwayTeam) %>% filter(row_number()<4) %>% select(AwayTeam, jornada_fuer, FTAG) %>% filter(AwayTeam %in% x$AwayTeam) %>% mutate(jornada_fuer=jornada_fuer-42, FTAG=FTAG/2)
+
+  x_fuer<- data.frame(x) %>% select(AwayTeam, jornada_fuer, FTAG) %>% mutate(jornada_fuer=as.numeric(jornada_fuer))
+
+  x_fuer<- dplyr::bind_rows(x_fuer, y_fuer)
+
+  x_fuer<- dplyr::bind_rows(x_fuer, y_2_fuer)
+
+  x_fuer<- x_fuer %>% arrange(jornada_fuer) %>% group_by(AwayTeam) %>% mutate(acumu_reali3gol_visit= lag(FTAG, 3)+lag(FTAG, 2)+lag(FTAG, 1)) %>% filter(!is.na(acumu_reali3gol_visit)) %>% select(-FTAG)
+
+  ## ABSOLUTO
+
+  x_punto<- juntar_parti3(x)
+  y_punto<- juntar_parti3(y)
+  y2_punto<- juntar_parti3(y_2)
+
+  y_abso<- data.frame(y_punto) %>% arrange(desc(jornada)) %>% group_by(equip) %>% filter(row_number()<4) %>% select(equip, jornada, goles) %>% mutate(jornada=jornada-38)
+
+  y_2_abso<- data.frame(y2_punto) %>% arrange(desc(jornada)) %>% group_by(equip) %>% filter(row_number()<4) %>% select(equip, jornada, goles) %>% filter(equip %in% x_punto$equip) %>% mutate(jornada=jornada-42, goles=goles*2)
+
+  x_abso<- data.frame(x_punto) %>% select(equip, jornada, goles) %>% mutate(jornada=as.numeric(jornada))
+
+  x_abso<- dplyr::bind_rows(x_abso, y_abso)
+
+  x_abso<- dplyr::bind_rows(x_abso, y_2_abso)
+
+  x_abso<- x_abso %>% arrange(jornada) %>% group_by(equip) %>% mutate(acumu_reali3gol_abso= lag(goles, 3)+lag(goles, 2)+lag(goles, 1)) %>% filter(!is.na(acumu_reali3gol_abso)) %>% select(-goles)
+  
+  x<- left_join(x, x_cas)
+  
+  x<- left_join(x, x_fuer)
+  
+  names(x_abso)<- c("HomeTeam", "jornada_casa", "acumu_reali3gol_local_abso")
+  
+  x<- left_join(x, x_abso, by=c("HomeTeam", "jornada_casa"))
+  
+  names(x_abso)<- c("AwayTeam", "jornada_fuer", "acumu_reali3gol_visit_abso")
+
+  x<- left_join(x, x_abso, by=c("AwayTeam", "jornada_fuer"))
+  
+  return(x)
+  
+}
+
+# rm(x, y, y_2, x_casa1, x_punto, y_cas, y_2_cas, x_cas, y_fuer, y_2_fuer, x_fuer, y_punto, y2_punto, y_2_abso, x_abso, y_abso)
+
+df20<- gol3_reali(df20,df19,df19_2)
+df19<- gol3_reali(df19,df18,df18_2)
+df18<- gol3_reali(df18,df17,df17_2)
+df17<- gol3_reali(df17,df16,df16_2)
+df16<- gol3_reali(df16,df15,df15_2)
+df15<- gol3_reali(df15,df14,df14_2)
+df14<- gol3_reali(df14,df13,df13_2)
+df13<- gol3_reali(df13,df12,df12_2)
+df12<- gol3_reali(df12,df11,df11_2)
+df11<- gol3_reali(df11,df10,df10_2)
+df10<- gol3_reali(df10,df09,df09_2)
+df09<- gol3_reali(df09,df08,df08_2)
+df08<- gol3_reali(df08,df07,df07_2)
+df07<- gol3_reali(df07,df06,df06_2)
+df06<- gol3_reali(df06,df05,df05_2)
+df05<- gol3_reali(df05,df04_A, df04_2_A)
+
+```
+
+## Goles encajados media parte 3
+
+Goles encajados en los 3 ultimos partidos al descanso en absoluto, local o visitante. Para los casos en los que el equipo haya recibido goles en segunda división los goles valdran el doble.
+
+```{r gol3enca media, message=FALSE}
+
+juntar_parti4<- function(x){
+  
+  x_casa1<- x %>% select(HomeTeam, jornada_casa, HTAG)
+
+  names(x_casa1)<- c("equip","jornada", "goles")
+
+  x_fuer1<- x %>% select(AwayTeam, jornada_fuer, HTHG)
+
+  names(x_fuer1)<- c("equip","jornada", "goles")
+
+  x_punto<- rbind(x_casa1, x_fuer1)
+  
+  return(x_punto)
+  
+}
+
+  
+  gol3_enca_media<- function(x, y, y_2){
+  
+  ###############################################
+  ## x: temporada actual                       ##
+  ## y: temporada pasada                       ##
+  ## y_2: temporada pasada de segunda division ##
+  ###############################################
+  
+  ## CASA
+
+# Seleccionamos los goles del rival con la variable HTAG
+  y_cas<- data.frame(y) %>% arrange(desc(jornada_casa)) %>% group_by(HomeTeam) %>% filter(row_number()<4) %>% select(HomeTeam, jornada_casa, HTAG) %>% mutate(jornada_casa=jornada_casa-38)
+
+  y_2_cas<- data.frame(y_2) %>% arrange(desc(jornada_casa)) %>% group_by(HomeTeam) %>% filter(row_number()<4) %>% select(HomeTeam, jornada_casa, HTAG) %>% filter(HomeTeam %in% x$HomeTeam) %>% mutate(jornada_casa=jornada_casa-42, HTAG=HTAG*2)
+
+  x_cas<- data.frame(x) %>% select(HomeTeam, jornada_casa, HTAG) %>% mutate(jornada_casa=as.numeric(jornada_casa))
+
+  x_cas<- dplyr::bind_rows(x_cas, y_cas)
+
+  x_cas<- dplyr::bind_rows(x_cas, y_2_cas)
+
+  x_cas<- x_cas %>% arrange(jornada_casa) %>% group_by(HomeTeam) %>% mutate(acumu_enc3gol_media_local= lag(HTAG, 3)+lag(HTAG, 2)+lag(HTAG, 1)) %>% filter(!is.na(acumu_enc3gol_media_local)) %>% select(-HTAG)
+
+
+  ## FUERA 
+
+  y_fuer<- data.frame(y) %>% arrange(desc(jornada_fuer)) %>% group_by(AwayTeam) %>% filter(row_number()<4) %>% select(AwayTeam, jornada_fuer, HTHG) %>% mutate(jornada_fuer=jornada_fuer-38)
+
+  y_2_fuer<- data.frame(y_2) %>% arrange(desc(jornada_fuer)) %>% group_by(AwayTeam) %>% filter(row_number()<4) %>% select(AwayTeam, jornada_fuer, HTHG) %>% filter(AwayTeam %in% x$AwayTeam) %>% mutate(jornada_fuer=jornada_fuer-42, HTHG=HTHG*2)
+
+  x_fuer<- data.frame(x) %>% select(AwayTeam, jornada_fuer, HTHG) %>% mutate(jornada_fuer=as.numeric(jornada_fuer))
+
+  x_fuer<- dplyr::bind_rows(x_fuer, y_fuer)
+
+  x_fuer<- dplyr::bind_rows(x_fuer, y_2_fuer)
+
+  x_fuer<- x_fuer %>% arrange(jornada_fuer) %>% group_by(AwayTeam) %>% mutate(acumu_enc3gol_media_visit= lag(HTHG, 3)+lag(HTHG, 2)+lag(HTHG, 1)) %>% filter(!is.na(acumu_enc3gol_media_visit)) %>% select(-HTHG)
+
+  ## ABSOLUTO
+
+  x_punto<- juntar_parti4(x)
+  y_punto<- juntar_parti4(y)
+  y2_punto<- juntar_parti4(y_2)
+
+  y_abso<- data.frame(y_punto) %>% arrange(desc(jornada)) %>% group_by(equip) %>% filter(row_number()<4) %>% select(equip, jornada, goles) %>% mutate(jornada=jornada-38)
+
+  y_2_abso<- data.frame(y2_punto) %>% arrange(desc(jornada)) %>% group_by(equip) %>% filter(row_number()<4) %>% select(equip, jornada, goles) %>% filter(equip %in% x_punto$equip) %>% mutate(jornada=jornada-42, goles=goles*2)
+
+  x_abso<- data.frame(x_punto) %>% select(equip, jornada, goles) %>% mutate(jornada=as.numeric(jornada))
+
+  x_abso<- dplyr::bind_rows(x_abso, y_abso)
+
+  x_abso<- dplyr::bind_rows(x_abso, y_2_abso)
+
+  x_abso<- x_abso %>% arrange(jornada) %>% group_by(equip) %>% mutate(acumu_enc3gol_media_abso= lag(goles, 3)+lag(goles, 2)+lag(goles, 1)) %>% filter(!is.na(acumu_enc3gol_media_abso)) %>% select(-goles)
+  
+  x<- left_join(x, x_cas)
+  
+  x<- left_join(x, x_fuer)
+  
+  names(x_abso)<- c("HomeTeam", "jornada_casa", "acumu_enc3gol_media_local_abso")
+  
+  x<- left_join(x, x_abso, by=c("HomeTeam", "jornada_casa"))
+  
+  names(x_abso)<- c("AwayTeam", "jornada_fuer", "acumu_enc3gol_media_visit_abso")
+
+  x<- left_join(x, x_abso, by=c("AwayTeam", "jornada_fuer"))
+  
+  return(x)
+  
+}
+
+# rm(x, y, y_2, x_casa1, x_punto, y_cas, y_2_cas, x_cas, y_fuer, y_2_fuer, x_fuer, y_punto, y2_punto, y_2_abso, x_abso, y_abso)
+
+df20<- gol3_enca_media(df20,df19,df19_2)
+df19<- gol3_enca_media(df19,df18,df18_2)
+df18<- gol3_enca_media(df18,df17,df17_2)
+df17<- gol3_enca_media(df17,df16,df16_2)
+df16<- gol3_enca_media(df16,df15,df15_2)
+df15<- gol3_enca_media(df15,df14,df14_2)
+df14<- gol3_enca_media(df14,df13,df13_2)
+df13<- gol3_enca_media(df13,df12,df12_2)
+df12<- gol3_enca_media(df12,df11,df11_2)
+df11<- gol3_enca_media(df11,df10,df10_2)
+df10<- gol3_enca_media(df10,df09,df09_2)
+df09<- gol3_enca_media(df09,df08,df08_2)
+df08<- gol3_enca_media(df08,df07,df07_2)
+df07<- gol3_enca_media(df07,df06,df06_2)
+df06<- gol3_enca_media(df06,df05,df05_2)
+df05<- gol3_enca_media(df05,df04_A, df04_2_A)
+
+```
+
+## Goles realizados media parte  3
+
+Goles realizados en los 3 ultimos partidos al descanso en absoluto, local o visitante. A los goles realizados en segunda división se les pone una penalización por el echo de ser de segunda división.
+
+```{r gol3reali media, message=FALSE}
+
+  
+juntar_parti5<- function(x){
+  
+  x_casa1<- x %>% select(HomeTeam, jornada_casa, FTHG)
+
+  names(x_casa1)<- c("equip","jornada", "goles")
+
+  x_fuer1<- x %>% select(AwayTeam, jornada_fuer, HTAG)
+
+  names(x_fuer1)<- c("equip","jornada", "goles")
+
+  x_punto<- rbind(x_casa1, x_fuer1)
+  
+  return(x_punto)
+  
+}
+
+  
+gol3_reali_media<- function(x, y, y_2){
+  
+  ###############################################
+  ## x: temporada actual                       ##
+  ## y: temporada pasada                       ##
+  ## y_2: temporada pasada de segunda division ##
+  ###############################################
+  
+  ## CASA
+
+# Seleccionamos los goles del equipo con la variable HTHG
+  y_cas<- data.frame(y) %>% arrange(desc(jornada_casa)) %>% group_by(HomeTeam) %>% filter(row_number()<4) %>% select(HomeTeam, jornada_casa, HTHG) %>% mutate(jornada_casa=jornada_casa-38)
+
+  y_2_cas<- data.frame(y_2) %>% arrange(desc(jornada_casa)) %>% group_by(HomeTeam) %>% filter(row_number()<4) %>% select(HomeTeam, jornada_casa, HTHG) %>% filter(HomeTeam %in% x$HomeTeam) %>% mutate(jornada_casa=jornada_casa-42, HTHG=HTHG/2)
+
+  x_cas<- data.frame(x) %>% select(HomeTeam, jornada_casa, HTHG) %>% mutate(jornada_casa=as.numeric(jornada_casa))
+
+  x_cas<- dplyr::bind_rows(x_cas, y_cas)
+
+  x_cas<- dplyr::bind_rows(x_cas, y_2_cas)
+
+  x_cas<- x_cas %>% arrange(jornada_casa) %>% group_by(HomeTeam) %>% mutate(acumu_reali3gol_media_local= lag(HTHG, 3)+lag(HTHG, 2)+lag(HTHG, 1)) %>% filter(!is.na(acumu_reali3gol_media_local)) %>% select(-HTHG)
+
+
+  ## FUERA 
+
+  y_fuer<- data.frame(y) %>% arrange(desc(jornada_fuer)) %>% group_by(AwayTeam) %>% filter(row_number()<4) %>% select(AwayTeam, jornada_fuer, HTAG) %>% mutate(jornada_fuer=jornada_fuer-38)
+
+  y_2_fuer<- data.frame(y_2) %>% arrange(desc(jornada_fuer)) %>% group_by(AwayTeam) %>% filter(row_number()<4) %>% select(AwayTeam, jornada_fuer, HTAG) %>% filter(AwayTeam %in% x$AwayTeam) %>% mutate(jornada_fuer=jornada_fuer-42, HTAG=HTAG/2)
+
+  x_fuer<- data.frame(x) %>% select(AwayTeam, jornada_fuer, HTAG) %>% mutate(jornada_fuer=as.numeric(jornada_fuer))
+
+  x_fuer<- dplyr::bind_rows(x_fuer, y_fuer)
+
+  x_fuer<- dplyr::bind_rows(x_fuer, y_2_fuer)
+
+  x_fuer<- x_fuer %>% arrange(jornada_fuer) %>% group_by(AwayTeam) %>% mutate(acumu_reali3gol_media_visit= lag(HTAG, 3)+lag(HTAG, 2)+lag(HTAG, 1)) %>% filter(!is.na(acumu_reali3gol_media_visit)) %>% select(-HTAG)
+
+  ## ABSOLUTO
+
+  x_punto<- juntar_parti5(x)
+  y_punto<- juntar_parti5(y)
+  y2_punto<- juntar_parti5(y_2)
+
+  y_abso<- data.frame(y_punto) %>% arrange(desc(jornada)) %>% group_by(equip) %>% filter(row_number()<4) %>% select(equip, jornada, goles) %>% mutate(jornada=jornada-38)
+
+  y_2_abso<- data.frame(y2_punto) %>% arrange(desc(jornada)) %>% group_by(equip) %>% filter(row_number()<4) %>% select(equip, jornada, goles) %>% filter(equip %in% x_punto$equip) %>% mutate(jornada=jornada-42, goles=goles*2)
+
+  x_abso<- data.frame(x_punto) %>% select(equip, jornada, goles) %>% mutate(jornada=as.numeric(jornada))
+
+  x_abso<- dplyr::bind_rows(x_abso, y_abso)
+
+  x_abso<- dplyr::bind_rows(x_abso, y_2_abso)
+
+  x_abso<- x_abso %>% arrange(jornada) %>% group_by(equip) %>% mutate(acumu_reali3gol_media_abso= lag(goles, 3)+lag(goles, 2)+lag(goles, 1)) %>% filter(!is.na(acumu_reali3gol_media_abso)) %>% select(-goles)
+  
+  x<- left_join(x, x_cas)
+  
+  x<- left_join(x, x_fuer)
+  
+  names(x_abso)<- c("HomeTeam", "jornada_casa", "acumu_reali3gol_media_local_abso")
+  
+  x<- left_join(x, x_abso, by=c("HomeTeam", "jornada_casa"))
+  
+  names(x_abso)<- c("AwayTeam", "jornada_fuer", "acumu_reali3gol_media_visit_abso")
+
+  x<- left_join(x, x_abso, by=c("AwayTeam", "jornada_fuer"))
+  
+  return(x)
+  
+}
+
+# rm(x, y, y_2, x_casa1, x_punto, y_cas, y_2_cas, x_cas, y_fuer, y_2_fuer, x_fuer, y_punto, y2_punto, y_2_abso, x_abso, y_abso)
+
+df20<- gol3_reali_media(df20,df19,df19_2)
+df19<- gol3_reali_media(df19,df18,df18_2)
+df18<- gol3_reali_media(df18,df17,df17_2)
+df17<- gol3_reali_media(df17,df16,df16_2)
+df16<- gol3_reali_media(df16,df15,df15_2)
+df15<- gol3_reali_media(df15,df14,df14_2)
+df14<- gol3_reali_media(df14,df13,df13_2)
+df13<- gol3_reali_media(df13,df12,df12_2)
+df12<- gol3_reali_media(df12,df11,df11_2)
+df11<- gol3_reali_media(df11,df10,df10_2)
+df10<- gol3_reali_media(df10,df09,df09_2)
+df09<- gol3_reali_media(df09,df08,df08_2)
+df08<- gol3_reali_media(df08,df07,df07_2)
+df07<- gol3_reali_media(df07,df06,df06_2)
+df06<- gol3_reali_media(df06,df05,df05_2)
+df05<- gol3_reali_media(df05,df04_A, df04_2_A)
+
+```
+
+## Mejor racha mitad anterior
+
+Mejor racha de partidos ganados entre la mitad anterior de campeonato local/visitante y en absoluto. Se asume la posible racha que venga de la otra primera mitad con si fuese de la mitad en la que estamos. Penalizamos el estar en segunda, bajando la mejor racha a la mitad.
+
+```{r mejor racha, message=FALSE}
+
+juntar_parti6<- function(x){
+  
+  x_casa1<- x %>% select(HomeTeam, jornada_casa, cant_gana_abso_local)
+
+  names(x_casa1)<- c("equip", "jornada", "cant_gana_abso")
+
+  x_fuer1<- x %>% select(AwayTeam, jornada_fuer, cant_gana_abso_visit)
+
+  names(x_fuer1)<- c("equip", "jornada", "cant_gana_abso")
+
+  x_punto<- rbind(x_casa1, x_fuer1)
+  
+  return(x_punto)
+  }
+
+
+racha_ganar<- function(x, y, y_2){
+  
+  ###############################################
+  ## x: temporada actual                       ##
+  ## y: temporada pasada                       ##
+  ## y_2: temporada pasada de segunda division ##
+  ###############################################
+  
+  ## CASA
+
+  y_cas<- data.frame(y) %>% filter(jornada_casa>19) %>% group_by(HomeTeam) %>% mutate(mejor_racha_loca=max(cant_gana_casa_local)) %>% select(HomeTeam, mejor_racha_loca) %>% mutate(parte_casa=2) %>% distinct()
+
+  y_2_cas<- data.frame(y_2) %>% filter(jornada_casa>19) %>% group_by(HomeTeam) %>% mutate(mejor_racha_loca=max(cant_gana_casa_local)/2) %>% select(HomeTeam, mejor_racha_loca) %>% mutate(parte_casa=2) %>% filter(HomeTeam %in% x$HomeTeam) %>% distinct()
+
+  x_cas<- data.frame(x) %>% filter(jornada_casa<20) %>% group_by(HomeTeam) %>% mutate(mejor_racha_loca=max(cant_gana_casa_local)) %>% select(HomeTeam, mejor_racha_loca) %>% mutate(parte_casa=1) %>% distinct()
+
+  x_cas<- dplyr::bind_rows(x_cas, y_cas)
+
+  x_cas<- dplyr::bind_rows(x_cas, y_2_cas)
+  
+  ## FUERA
+
+
+  y_fuer<- data.frame(y) %>% filter(jornada_fuer>19) %>% group_by(AwayTeam) %>% mutate(mejor_racha_visit=max(cant_gana_fuera_visit)) %>% select(AwayTeam, mejor_racha_visit) %>% mutate(parte_fuer=2) %>% distinct()
+
+  y_2_fuer<- data.frame(y_2) %>% filter(jornada_fuer>19) %>% group_by(AwayTeam) %>% mutate(mejor_racha_visit=max(cant_gana_fuera_visit)/2) %>% select(AwayTeam, mejor_racha_visit) %>% mutate(parte_fuer=2) %>% filter(AwayTeam %in% x$AwayTeam) %>% distinct()
+
+  x_fuer<- data.frame(x) %>% filter(jornada_fuer<20) %>% group_by(AwayTeam) %>% mutate(mejor_racha_visit=max(cant_gana_fuera_visit)) %>% select(AwayTeam, mejor_racha_visit) %>% mutate(parte_fuer=1) %>% distinct()
+
+  x_fuer<- dplyr::bind_rows(x_fuer, y_fuer)
+
+  x_fuer<- dplyr::bind_rows(x_fuer, y_2_fuer)
+  
+  ## ABSOLUTO
+
+  x_punto<- juntar_parti6(x)
+  y_punto<- juntar_parti6(y)
+  y2_punto<- juntar_parti6(y_2)
+  
+  y_abso<- data.frame(y_punto) %>% filter(jornada>19) %>% group_by(equip) %>% mutate(mejor_racha_abso=max(cant_gana_abso)) %>% select(equip, mejor_racha_abso) %>% mutate(parte=2) %>% distinct()
+
+  y_2_abso<- data.frame(y2_punto) %>% filter(jornada>19) %>% group_by(equip) %>% mutate(mejor_racha_abso=max(cant_gana_abso)/2) %>% select(equip, mejor_racha_abso) %>% mutate(parte=2) %>% filter(equip %in% x_punto$equip) %>% distinct()
+
+  x_abso<- data.frame(x_punto) %>% filter(jornada<20) %>% group_by(equip) %>% mutate(mejor_racha_abso=max(cant_gana_abso)) %>% select(equip, mejor_racha_abso) %>% mutate(parte=1) %>% distinct()
+
+  x_abso<- dplyr::bind_rows(x_abso, y_abso)
+
+  x_abso<- dplyr::bind_rows(x_abso, y_2_abso)
+  
+  # Creamos la variable de parte "alreves" ya que queremos cruzar con el que corresponde a su otra mitad.
+  x<- x %>% mutate(parte_casa=ifelse(jornada_casa>19,1,2), parte_fuer=ifelse(jornada_fuer>19,1,2))
+  
+  x<- left_join(x, x_cas, by=c("HomeTeam", "parte_casa"))
+  
+  x<- left_join(x, x_fuer, by=c("AwayTeam", "parte_fuer"))
+  
+  names(x_abso)<- c("HomeTeam", "mejor_racha_abso_local", "parte_casa" )
+  
+  x<- left_join(x, x_abso, by=c("HomeTeam", "parte_casa"))
+  
+  names(x_abso)<- c("AwayTeam", "mejor_racha_abso_visit", "parte_fuer" )
+  
+  x<- left_join(x, x_abso, by=c("AwayTeam", "parte_fuer"))
+  
+  x<- x %>% select(-parte_casa, -parte_fuer)
+  
+  return(x)
+}
+
+# rm(x, y, y_2, x_casa1, x_punto, y_cas, y_2_cas, x_cas, y_fuer, y_2_fuer, x_fuer, y_punto, y2_punto, y_2_abso, x_abso, y_abso)
+
+
+df20<- racha_ganar(df20,df19,df19_2)
+df19<- racha_ganar(df19,df18,df18_2)
+df18<- racha_ganar(df18,df17,df17_2)
+df17<- racha_ganar(df17,df16,df16_2)
+df16<- racha_ganar(df16,df15,df15_2)
+df15<- racha_ganar(df15,df14,df14_2)
+df14<- racha_ganar(df14,df13,df13_2)
+df13<- racha_ganar(df13,df12,df12_2)
+df12<- racha_ganar(df12,df11,df11_2)
+df11<- racha_ganar(df11,df10,df10_2)
+df10<- racha_ganar(df10,df09,df09_2)
+df09<- racha_ganar(df09,df08,df08_2)
+df08<- racha_ganar(df08,df07,df07_2)
+df07<- racha_ganar(df07,df06,df06_2)
+df06<- racha_ganar(df06,df05,df05_2)
+df05<- racha_ganar(df05,df04_A, df04_2_A)
+
+
+```
+
+## Peor racha mitad anterior
+
+Peor racha de partidos perdidos entre la mitad anterior de campeonato local/visitante y en absoluto. Se asume la posible racha que venga de la otra primera mitad con si fuese de la mitad en la que estamos. Penalizamos el estar en segunda, subimos la peor racha al doble.
+
+```{r peor racha, message=FALSE}
+
+juntar_parti7<- function(x){
+  
+  x_casa1<- x %>% select(HomeTeam, jornada_casa, cant_perd_abso_local)
+
+  names(x_casa1)<- c("equip", "jornada", "cant_perd_abso")
+
+  x_fuer1<- x %>% select(AwayTeam, jornada_fuer, cant_perd_abso_visit)
+
+  names(x_fuer1)<- c("equip", "jornada", "cant_perd_abso")
+
+  x_punto<- rbind(x_casa1, x_fuer1)
+  
+  return(x_punto)
+  }
+
+
+racha_perd<- function(x, y, y_2){
+  
+  ###############################################
+  ## x: temporada actual                       ##
+  ## y: temporada pasada                       ##
+  ## y_2: temporada pasada de segunda division ##
+  ###############################################
+  
+  ## CASA
+
+  y_cas<- data.frame(y) %>% filter(jornada_casa>19) %>% group_by(HomeTeam) %>% mutate(peor_racha_loca=max(cant_perd_casa_local)) %>% select(HomeTeam, peor_racha_loca) %>% mutate(parte_casa=2) %>% distinct()
+
+  y_2_cas<- data.frame(y_2) %>% filter(jornada_casa>19) %>% group_by(HomeTeam) %>% mutate(peor_racha_loca=max(cant_perd_casa_local)*2) %>% select(HomeTeam, peor_racha_loca) %>% mutate(parte_casa=2) %>% filter(HomeTeam %in% x$HomeTeam) %>% distinct()
+
+  x_cas<- data.frame(x) %>% filter(jornada_casa<20) %>% group_by(HomeTeam) %>% mutate(peor_racha_loca=max(cant_perd_casa_local)) %>% select(HomeTeam, peor_racha_loca) %>% mutate(parte_casa=1) %>% distinct()
+
+  x_cas<- dplyr::bind_rows(x_cas, y_cas)
+
+  x_cas<- dplyr::bind_rows(x_cas, y_2_cas)
+  
+  ## FUERA
+
+
+  y_fuer<- data.frame(y) %>% filter(jornada_fuer>19) %>% group_by(AwayTeam) %>% mutate(peor_racha_visit=max(cant_perd_fuera_visit)) %>% select(AwayTeam, peor_racha_visit) %>% mutate(parte_fuer=2) %>% distinct()
+
+  y_2_fuer<- data.frame(y_2) %>% filter(jornada_fuer>19) %>% group_by(AwayTeam) %>% mutate(peor_racha_visit=max(cant_perd_fuera_visit)*2) %>% select(AwayTeam, peor_racha_visit) %>% mutate(parte_fuer=2) %>% filter(AwayTeam %in% x$AwayTeam) %>% distinct()
+
+  x_fuer<- data.frame(x) %>% filter(jornada_fuer<20) %>% group_by(AwayTeam) %>% mutate(peor_racha_visit=max(cant_perd_fuera_visit)) %>% select(AwayTeam, peor_racha_visit) %>% mutate(parte_fuer=1) %>% distinct()
+
+  x_fuer<- dplyr::bind_rows(x_fuer, y_fuer)
+
+  x_fuer<- dplyr::bind_rows(x_fuer, y_2_fuer)
+  
+  ## ABSOLUTO
+
+  x_punto<- juntar_parti7(x)
+  y_punto<- juntar_parti7(y)
+  y2_punto<- juntar_parti7(y_2)
+  
+  y_abso<- data.frame(y_punto) %>% filter(jornada>19) %>% group_by(equip) %>% mutate(peor_racha_abso=max(cant_perd_abso)) %>% select(equip, peor_racha_abso) %>% mutate(parte=2) %>% distinct()
+
+  y_2_abso<- data.frame(y2_punto) %>% filter(jornada>19) %>% group_by(equip) %>% mutate(peor_racha_abso=max(cant_perd_abso)*2) %>% select(equip, peor_racha_abso) %>% mutate(parte=2) %>% filter(equip %in% x_punto$equip) %>% distinct()
+
+  x_abso<- data.frame(x_punto) %>% filter(jornada<20) %>% group_by(equip) %>% mutate(peor_racha_abso=max(cant_perd_abso)) %>% select(equip, peor_racha_abso) %>% mutate(parte=1) %>% distinct()
+
+  x_abso<- dplyr::bind_rows(x_abso, y_abso)
+
+  x_abso<- dplyr::bind_rows(x_abso, y_2_abso)
+  
+  # Creamos la variable de parte "alreves" ya que queremos cruzar con el que corresponde a su otra mitad.
+  x<- x %>% mutate(parte_casa=ifelse(jornada_casa>19,1,2), parte_fuer=ifelse(jornada_fuer>19,1,2))
+  
+  x<- left_join(x, x_cas, by=c("HomeTeam", "parte_casa"))
+  
+  x<- left_join(x, x_fuer, by=c("AwayTeam", "parte_fuer"))
+  
+  names(x_abso)<- c("HomeTeam", "peor_racha_abso_local", "parte_casa" )
+  
+  x<- left_join(x, x_abso, by=c("HomeTeam", "parte_casa"))
+  
+  names(x_abso)<- c("AwayTeam", "peor_racha_abso_visit", "parte_fuer" )
+  
+  x<- left_join(x, x_abso, by=c("AwayTeam", "parte_fuer"))
+  
+  x<- x %>% select(-parte_casa, -parte_fuer)
+  
+  return(x)
+}
+
+# rm(x, y, y_2, x_casa1, x_punto, y_cas, y_2_cas, x_cas, y_fuer, y_2_fuer, x_fuer, y_punto, y2_punto, y_2_abso, x_abso, y_abso)
+
+
+df20<- racha_perd(df20,df19,df19_2)
+df19<- racha_perd(df19,df18,df18_2)
+df18<- racha_perd(df18,df17,df17_2)
+df17<- racha_perd(df17,df16,df16_2)
+df16<- racha_perd(df16,df15,df15_2)
+df15<- racha_perd(df15,df14,df14_2)
+df14<- racha_perd(df14,df13,df13_2)
+df13<- racha_perd(df13,df12,df12_2)
+df12<- racha_perd(df12,df11,df11_2)
+df11<- racha_perd(df11,df10,df10_2)
+df10<- racha_perd(df10,df09,df09_2)
+df09<- racha_perd(df09,df08,df08_2)
+df08<- racha_perd(df08,df07,df07_2)
+df07<- racha_perd(df07,df06,df06_2)
+df06<- racha_perd(df06,df05,df05_2)
+df05<- racha_perd(df05,df04_A, df04_2_A)
+
+
+```
+
+## Diferencia de puntos
+
+Diferencia de puntos entre local y visitante (local-visitante). Si tiene mas puntos el local entonces tendremos un valor positibo, si estan con los mismos puntos entonces sera de 0. Si tiene mas el visitante entonces sera negatibo.
+
+```{r diferencia, message=FALSE}
+
+diferencia_puntos<- function(x){
+  
+  x<- x %>% mutate(diff_punto=puntos_local-puntos_visit)
+  return(x)
+    
+}
+  
+df04_A<- diferencia_puntos(df04_A)
+df05<- diferencia_puntos(df05)
+df06<- diferencia_puntos(df06)
+df07<- diferencia_puntos(df07)
+df08<- diferencia_puntos(df08)
+df09<- diferencia_puntos(df09)
+df10<- diferencia_puntos(df10)
+df11<- diferencia_puntos(df11)
+df12<- diferencia_puntos(df12)
+df13<- diferencia_puntos(df13)
+df14<- diferencia_puntos(df14)
+df15<- diferencia_puntos(df15)
+df16<- diferencia_puntos(df16)
+df17<- diferencia_puntos(df17)
+df18<- diferencia_puntos(df18)
+df19<- diferencia_puntos(df19)
+df20<- diferencia_puntos(df20)
+
+
+
+```
+
+## Partido anterior
+
+Numero de disparos a puerta, goles, disparos en general, resultado y rojas recibidas local/visitante el partido anterior. En absoluto y separado por local/visitante.
+
+```{r partido anterior, message=FALSE}
+
+
+juntar_parti8<- function(x){
+  
+  x_casa1<- x %>% select(HomeTeam, jornada_casa, FTHG, res_casa, HS, HST, HR)
+
+  names(x_casa1)<- c("equip", "jornada", "goles", "resultado", "disparos", "disp_puer", "rojas")
+
+  x_fuer1<- x %>% select(AwayTeam, jornada_fuer, FTAG, res_fuer, AS, AST, AR)
+
+  names(x_fuer1)<- c("equip", "jornada", "goles", "resultado", "disparos", "disp_puer", "rojas")
+
+  x_punto<- rbind(x_casa1, x_fuer1)
+  
+  return(x_punto)
+  }
+
+
+anterior<- function(x){
+  
+  ###############################################
+  ## x: temporada actual                       ##
+  ###############################################
+  
+  ## CASA
+
+  x_cas<- data.frame(x) %>% select(HomeTeam, jornada_casa, FTHG, res_casa, HS, HST, HR)  %>% arrange(jornada_casa) %>%
+    group_by(HomeTeam) %>% mutate(HS=lag(HS),
+                                  HST=lag(HST),
+                                  HR=lag(HR),
+                                  FTHG=lag(FTHG),
+                                  res_casa=lag(res_casa)) %>%
+    mutate(HS=ifelse(is.na(HS), 0, HS),
+           HST=ifelse(is.na(HST), 0, HST),
+           HR=ifelse(is.na(HR), 0, HR),
+           FTHG=ifelse(is.na(FTHG), 0, FTHG),
+           res_casa=ifelse(is.na(res_casa), 0, res_casa))
+  
+  ## FUERA
+
+  x_fuer<- data.frame(x) %>% select(AwayTeam, jornada_fuer, FTAG, res_fuer, AS, AST, AR) %>% arrange(jornada_fuer) %>%
+    group_by(AwayTeam) %>% mutate(AS=lag(AS),
+                                  AST=lag(AST),
+                                  AR=lag(AR),
+                                  FTAG=lag(FTAG),
+                                  res_fuer=lag(res_fuer)) %>%
+    mutate(AS=ifelse(is.na(AS), 0, AS),
+           AST=ifelse(is.na(AST), 0, AST),
+           AR=ifelse(is.na(AR), 0, AR),
+           FTAG=ifelse(is.na(FTAG), 0, FTAG),
+           res_fuer=ifelse(is.na(res_fuer), 0, res_fuer))
+  
+  ## ABSOLUTO
+
+  x_abso<- juntar_parti8(x)
+
+  x_abso<- data.frame(x_abso)  %>% select(equip, jornada, goles, resultado, disparos, disp_puer, rojas) %>% arrange(jornada) %>%
+    group_by(equip) %>% mutate(disparos=lag(disparos),
+                                  disp_puer=lag(disp_puer),
+                                  rojas=lag(rojas),
+                                  goles=lag(goles),
+                                  resultado=lag(resultado)) %>%
+    mutate(disparos=ifelse(is.na(disparos), 0, disparos),
+           disp_puer=ifelse(is.na(disp_puer), 0, disp_puer),
+           rojas=ifelse(is.na(rojas), 0, rojas),
+           goles=ifelse(is.na(goles), 0, goles),
+           resultado=ifelse(is.na(resultado), 0, resultado))
+    
+  names(x_cas)<- c("HomeTeam", "jornada_casa", "gol_ante_local", "resul_ante_local", "disp_ante_local", "disp_puer_ante_local", "roj_ante_local")
+  
+  x<- left_join(x, x_cas, by=c("HomeTeam", "jornada_casa"))
+  
+  names(x_fuer)<- c("AwayTeam", "jornada_fuer", "gol_ante_visi", "resul_ante_visi", "disp_ante_visi", "disp_puer_ante_visi", "roj_ante_visi")
+  
+  x<- left_join(x, x_fuer, by=c("AwayTeam", "jornada_fuer"))
+  
+  names(x_abso)<- c("HomeTeam", "jornada_casa", "gol_ante_local_abso", "resul_ante_local_abso", "disp_ante_local_abso", "disp_puer_ante_local_abso", "roj_ante_local_abso")
+  
+  x<- left_join(x, x_abso, by=c("HomeTeam", "jornada_casa"))
+  
+  names(x_abso)<- c("AwayTeam", "jornada_fuer", "gol_ante_visi_abso", "resul_ante_visi_abso", "disp_ante_visi_abso", "disp_puer_ante_visi_abso", "roj_ante_visi_abso")
+  
+  x<- left_join(x, x_abso, by=c("AwayTeam", "jornada_fuer"))
+  
+  return(x)
+}
+
+# rm(x, y, y_2, x_casa1, x_punto, y_cas, y_2_cas, x_cas, y_fuer, y_2_fuer, x_fuer, y_punto, y2_punto, y_2_abso, x_abso, y_abso)
+
+
+df20<- anterior(df20)
+df19<- anterior(df19)
+df18<- anterior(df18)
+df17<- anterior(df17)
+df16<- anterior(df16)
+df15<- anterior(df15)
+df14<- anterior(df14)
+df13<- anterior(df13)
+df12<- anterior(df12)
+df11<- anterior(df11)
+df10<- anterior(df10)
+df09<- anterior(df09)
+df08<- anterior(df08)
+df07<- anterior(df07)
+df06<- anterior(df06)
+df05<- anterior(df05)
+
+
+```
+
+
+## Quitar
+
+Para acabar con esta parte quitaremos las variables que no nos interesen.
+
+```{r quitar}
+
+
+quitar<- function(x){
+  
+  x<- x %>% select( -FTHG, -res_casa, -FTAG, -res_fuer, -HTHG, -HTAG, -HS, -AS, -HST, -AST, -HF, -AF, -HC, -AC, -HY, -AY, -HR, -AR)
+  
+  return(x)
+}
+
+df20<- quitar(df20)
+df19<- quitar(df19)
+df18<- quitar(df18)
+df17<- quitar(df17)
+df16<- quitar(df16)
+df15<- quitar(df15)
+df14<- quitar(df14)
+df13<- quitar(df13)
+df12<- quitar(df12)
+df11<- quitar(df11)
+df10<- quitar(df10)
+df09<- quitar(df09)
+df08<- quitar(df08)
+df07<- quitar(df07)
+df06<- quitar(df06)
+df05<- quitar(df05)
+
+```
+
+## Guardamos
+
+Guardamos los data frame que hemos creado.
+
+```{r guardar parti}
+
+# setwd("~/OLAST/MASTERRA/CIENCIA DE DATOS/TFM/RDATA")
+# save(df05, df06, df07, df08, df09, df10, df11, df12, df13,
+#      df14, df15, df16, df17, df18, df19, df20, file = "20211111_df_partidos.Rdata")
+
+# load("~/OLAST/MASTERRA/CIENCIA DE DATOS/TFM/RDATA/20211111_df_partidos.Rdata")
+
+rm(anterior, clasifica, diferencia_puntos, gol3_enca, gol3_enca_media, gol3_reali, gol3_reali_media, jornad, juntar_parti, juntar_parti2, juntar_parti3, juntar_parti4, juntar_parti5, juntar_parti6, juntar_parti7, juntar_parti8, part5_acum, partid_ganar, partid_no_ganar,partid_perd, posi_lig_pas, puntos, quitar, racha_ganar, racha_perd, apuestas, juntar_apost)
+
+rm(df04_2_A, df05_2, df06_2, df07_2, df08_2, df09_2, df10_2, df11_2, df12_2, df13_2, df14_2, df15_2, df16_2, df17_2, df18_2, df19_2, df20_2)
+
+```
+
+
+
+**************
+**************
+
+# Creacion variables meteorologicas
+
+Cargamos la libreria de aemet que nos proporcionara la información necesaria.
+
+```{r meteo library}
+
+# https://cran.r-project.org/web/packages/climaemet/climaemet.pdf
+library(climaemet)
+
+# browseURL("https://opendata.aemet.es/centrodedescargas/obtencionAPIKey")
+
+## Use this function to register your API Key temporarly or permanently
+aemet_api_key("eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJvYXJyaXppYml0YUB1b2MuZWR1IiwianRpIjoiNDRjNzNiZmUtM2VjYS00ZTAzLWFhNGMtYmU1YTg4MGY3NWJjIiwiaXNzIjoiQUVNRVQiLCJpYXQiOjE2MzUyNjY1NDksInVzZXJJZCI6IjQ0YzczYmZlLTNlY2EtNGUwMy1hYTRjLWJlNWE4ODBmNzViYyIsInJvbGUiOiIifQ.tg8Df2JS4k_cBpT1A8NWv6Ijfa_WNoXPJRJPouzHl14", install = TRUE, overwrite=TRUE)
+
+```
+
+Creamos la lista donde vamos a almacenar los datos de las distintas estaciones meteorologicas.
+
+```{r lista}
+
+df_nam<- df %>% distinct(HomeTeam)
+write.xlsx2(df_nam, file="ciudades.xlsx")
+
+aemet_last_obs("9434")
+
+# stations <- aemet_stations() %>% filter(nombre=="ARENYS DE MAR")
+stations1 <- aemet_stations()
+
+df_ciud <- read_excel("~/OLAST/MASTERRA/CIENCIA DE DATOS/TFM/datu baseak/ciudades1.xlsx")
+
+time1<- Sys.time()
+ciuda<- unique(df_ciud$nombre)
+lista<-list()
+for (ciudad in ciuda) {
+  print(ciudad)
+  stations <- aemet_stations() %>% filter(nombre==ciudad)
+  
+  lista[[ciudad]] <- aemet_daily_clim(stations, start = "2005-08-01", end = "2021-05-31")
+}
+time2<- Sys.time()
+
+timepo<- c(time1, time2)
+
+# setwd("~/OLAST/MASTERRA/CIENCIA DE DATOS/TFM/RDATA")
+# save(lista, file="20211028_tiempo1.Rdata")
+
+################
+
+time1<- Sys.time()
+ciuda<- unique(df_ciud$nombre)
+lista_period<-list()
+for (ciudad in ciuda) {
+  print(ciudad)
+  stations <- aemet_stations() %>% filter(nombre==ciudad)
+  
+  lista_period[[ciudad]] <- aemet_daily_period(stations, start = 2005, end = 2021)
+}
+time2<- Sys.time()
+
+timepo1<- c(time1, time2)
+
+setwd("~/OLAST/MASTERRA/CIENCIA DE DATOS/TFM/datu baseak")
+save(timepo1, lista_period, file="20211029_tiempo2.Rdata")
+
+
+
+stations <- aemet_stations() %>% filter(nombre=="GIRONA AEROPUERTO")
+
+# start = "2005-08-01", end = "2021-05-31"
+data_daily <- aemet_daily_clim(stations, start = "2005-08-01", end = "2021-05-31")
+
+data_daily1 <- aemet_daily_clim(stations, start = "2020-08-05", end = "2020-08-07")
+
+lista[["www"]]<- data_daily
+
+data_extremes <- aemet_daily_period(stations, start = 2021, end = 2021)
+
+climaemet::aemet_daily_period()
+```
+
+Crearemos la tabla maestra del tiempo.
+
+```{r create df_tiempo}
+
+# for (i in ciuda) {
+#   
+#   print(paste0(i," tiene una fecha minima de: ",min(lista[[i]][["fecha"]])))
+#   
+# }
+
+df_GAZTE<- lista[["VITORIA GASTEIZ AEROPUERTO"]] # ez dugu erabiliko azkenean
+df_FORON<- lista[["FORONDA-TXOKIZA"]]
+# BILBO
+df_BILB<- lista[["BILBAO AEROPUERTO"]]
+# VALENCIA
+df_VALEN<- lista[["VALÈNCIA"]]
+df_VALEN_AEROP<- lista[["VALENCIA AEROPUERTO"]]
+df_VALEN_VIVER<- lista[["VALÈNCIA, VIVEROS"]]
+# MADRID
+df_MADRI_AEROP<- lista[["MADRID AEROPUERTO"]]
+df_MADRI_CUATR<- lista[["MADRID, CUATRO VIENTOS"]] # ez dugu erabiliko azkenean
+df_MADRI_UNIVE<- lista[["MADRID, CIUDAD UNIVERSITARIA"]] # ez dugu erabiliko azkenean
+df_MADRI_RETIR<- lista[["MADRID, RETIRO"]] # ez dugu erabiliko azkenean
+# CADIZ
+df_CADIZ<- lista[["CÁDIZ"]]
+# VIGO
+df_VIGO_AEROP<- lista[["VIGO AEROPUERTO"]]
+# BARCELONA
+df_BARCE<- lista[["BARCELONA"]] # ez dugu erabiliko azkenean
+df_BARCE_AEROP<- lista[["BARCELONA AEROPUERTO"]]
+# MALLORCA
+df_MALLO_AEROP<- lista[["PALMA DE MALLORCA, AEROPUERTO"]]
+# IRUÑEA
+df_IRUÑEA<- lista[["PAMPLONA"]] # ez dugu erabiliko azkenean
+df_PAMP_AEROP<- lista[["PAMPLONA, AEROPUERTO"]]
+# SEVILLA
+df_SEVI_AEROP<- lista[["SEVILLA AEROPUERTO"]]
+# A CORUÑA
+df_CORUÑA<- lista[["A CORUÑA"]]
+# GETAFE/MADRID
+df_GETAFE<- lista[["GETAFE"]]
+# MALAGA
+df_MALAG_PUERT<- lista[["MÁLAGA, PUERTO"]] # ez dugu erabiliko azkenean
+df_MALAG_METEOROL<- lista[["MÁLAGA, CENTRO METEOROLÓGICO"]] # ez dugu erabiliko azkenean
+df_MALAG_AEROP<- aemet_daily_clim(aemet_stations() %>% filter(nombre=="MÁLAGA AEROPUERTO"), start = "2005-08-01", end = "2021-05-31")
+## SANTANDER
+########################
+### IMPORTANTE: Para santander utilizaremos los datos que tenemos en el aeropuerto de bilbao.
+########################
+df_SANTA_AEROP<- lista[["SANTANDER AEROPUERTO"]]
+df_SANTA_CIUDAD<- lista[["SANTANDER, CIUDAD"]] # HUTSIK
+## DONOSTI
+df_DONOS_AEROP<- lista[["SAN SEBASTIÁN AEROPUERTO"]] # ez dugu erabiliko azkenean
+df_DONOS_IGELD<- lista[["DONOSTIA/SAN SEBASTIÁN, IGUELDO"]]
+# CASTELLON/VILLARREAL
+df_CASTELL_PLANA<- lista[["CASTELLÓ DE LA PLANA"]] # ez dugu erabiliko azkenean
+df_CASTELL_ALMASSA<- lista[["CASTELLÓN - ALMASSORA"]]
+# ZARAGOZA
+df_ZARAG_VALDES<- lista[["ZARAGOZA, VALDESPARTERA"]] # ez dugu erabiliko azkenean
+df_ZARAG_AEROP<- lista[["ZARAGOZA, AEROPUERTO"]]
+# HUELVA
+df_AYAMONTE<- lista[["AYAMONTE"]] # ez dugu erabiliko azkenean
+df_MOGUER_ARENOS<- lista[["MOGUER, EL ARENOSILLO"]] # ez dugu erabiliko azkenean
+df_HUELVA_ESTE<- aemet_daily_clim(aemet_stations() %>% filter(nombre=="HUELVA, RONDA ESTE"), start = "2005-08-01", end = "2021-05-31")
+# TARRAGONA
+df_REUS_AEROP<- lista[["REUS AEROPUERTO"]]
+# MURCIA
+df_MURCIA<- lista[["MURCIA"]]
+# ALMERIA
+df_ALMERI_AEROP<- lista[["ALMERÍA AEROPUERTO"]]
+# VALLADOLID
+df_VALLAD_AEROP<- lista[["VALLADOLID AEROPUERTO"]]
+df_VALLAD<- lista[["VALLADOLID"]] # ez dugu erabiliko azkenean
+# SORIA
+df_SORIA<- lista[["SORIA"]]
+########################
+### IMPORTANTE: Para gijon añadiremos la información que nos falta de la ciudad de gijon con el aeropuerto de asturias que ###             esta un poco alejado de gijon. Y alfinal utilizamos df_GIJON_PUERTO
+########################
+df_GIJON_MERCED<- lista[["GIJÓN. LA MERCED"]] # HUTSIK
+df_GIJON_CAMPUS<- lista[["GIJÓN, CAMPUS"]]
+df_GIJON<- lista[["GIJÓN"]] # HUTSIK
+df_GIJON_PUERTO<- lista[["GIJÓN, PUERTO"]]
+df_GIJON_AEROP<- aemet_daily_clim(aemet_stations() %>% filter(nombre=="ASTURIAS AEROPUERTO"), start = "2005-08-01", end = "2021-05-31")
+
+df_GIJON_AEROP2<- df_GIJON_AEROP %>% filter(fecha<as.Date("2013-10-11"))
+
+df_gij<- rbind(df_GIJON_CAMPUS %>% select(fecha, racha), df_GIJON_AEROP2 %>% select(fecha, racha))
+
+df_GIJON_PUERTO<- left_join(df_GIJON_PUERTO, df_gij)
+
+###
+df_IZAÑA<- lista[["IZAÑA"]]
+df_ALACANT<- lista[["ALICANTE/ALACANT"]]
+df_GRANA_BASE_AEREA<- lista[["GRANADA BASE AÉREA"]]
+df_ALACANT_ELCHE_AEROP<- lista[["ALICANTE-ELCHE AEROPUERTO"]]
+df_ELGOIBAR<- lista[["ELGOIBAR"]] # ez dugu erabiliko azkenean
+df_PALMA_AEROP<- aemet_daily_clim(aemet_stations() %>% filter(nombre=="LA PALMA AEROPUERTO"), start = "2005-08-01", end = "2021-05-31")
+df_CORDO_AEROP<- lista[["CÓRDOBA AEROPUERTO"]]
+df_PALMA_GRAN_CANAR_CRISTOBAL<- lista[["LAS PALMAS DE GRAN CANARIA, SAN CRISTOBAL"]]
+df_GIRONA_ANTIC_INSTIT<- lista[["GIRONA, ANTIC INSTITUT"]] # HUTSIK
+df_GIRONA_AEROP<- lista[["GIRONA AEROPUERTO"]]
+df_HUESCA_AEROP<- lista[["HUESCA, AEROPUERTO"]]
+
+common_col_names2 <- Reduce(intersect, list(names(df_GAZTE), names(df_FORON), names(df_BILB), names(df_VALEN),
+                                            names(df_VALEN_AEROP),
+                                            names(df_MADRI_AEROP), names(df_MADRI_CUATR),
+                                            names(df_MADRI_RETIR), names(df_CADIZ), names(df_VIGO_AEROP),
+                                            names(df_BARCE_AEROP), names(df_MALLO_AEROP), names(df_PAMP_AEROP), 
+                                            names(df_SEVI_AEROP), names(df_CORUÑA), names(df_GETAFE),
+                                            names(df_MALAG_AEROP),
+                                            names(df_DONOS_IGELD), names(df_SANTA_AEROP),
+                                            names(df_DONOS_IGELD), names(df_CASTELL_ALMASSA), names(df_ZARAG_VALDES), 
+                                            names(df_ZARAG_AEROP),
+                                            names(df_HUELVA_ESTE), #
+                                            names(df_REUS_AEROP), names(df_MURCIA), names(df_ALMERI_AEROP), 
+                                            names(df_VALLAD_AEROP), names(df_VALLAD), names(df_SORIA),
+                                            names(df_GIJON_PUERTO),
+                                            names(df_IZAÑA), 
+                                            names(df_ALACANT), names(df_GRANA_BASE_AEREA), names(df_ALACANT_ELCHE_AEROP), 
+                                            names(df_CORDO_AEROP), names(df_PALMA_AEROP), 
+                                            names(df_GIRONA_AEROP), names(df_HUESCA_AEROP))) # 20
+
+df_GAZTE<- df_GAZTE[common_col_names2] # ez dugu erabiliko azkenean
+df_FORON<- df_FORON[common_col_names2]
+df_BILB<- df_BILB[common_col_names2]
+df_VALEN<- df_VALEN[common_col_names2] # ez dugu erabiliko azkenean
+df_VALEN_AEROP<- df_VALEN_AEROP[common_col_names2]
+df_MADRI_AEROP<- df_MADRI_AEROP[common_col_names2]
+df_MADRI_CUATR<- df_MADRI_CUATR[common_col_names2] # ez dugu erabiliko azkenean
+df_MADRI_RETIR<- df_MADRI_RETIR[common_col_names2] # ez dugu erabiliko azkenean
+df_CADIZ<- df_CADIZ[common_col_names2]
+df_VIGO_AEROP<- df_VIGO_AEROP[common_col_names2]
+df_BARCE_AEROP<- df_BARCE_AEROP[common_col_names2]
+df_MALLO_AEROP<- df_MALLO_AEROP[common_col_names2]
+df_PAMP_AEROP<- df_PAMP_AEROP[common_col_names2]
+df_SEVI_AEROP<- df_SEVI_AEROP[common_col_names2]
+df_CORUÑA<- df_CORUÑA[common_col_names2]
+df_GETAFE<- df_GETAFE[common_col_names2]
+df_MALAG_AEROP<- df_MALAG_AEROP[common_col_names2]
+df_DONOS_AEROP<- df_DONOS_AEROP[common_col_names2]
+df_SANTA_AEROP<- df_SANTA_AEROP[common_col_names2]
+df_DONOS_IGELD<- df_DONOS_IGELD[common_col_names2]
+df_CASTELL_ALMASSA<- df_CASTELL_ALMASSA[common_col_names2]
+df_ZARAG_VALDES<- df_ZARAG_VALDES[common_col_names2] # ez dugu erabiliko azkenean
+df_ZARAG_AEROP<- df_ZARAG_AEROP[common_col_names2]
+df_HUELVA_ESTE<- df_HUELVA_ESTE[common_col_names2]
+df_REUS_AEROP<- df_REUS_AEROP[common_col_names2]
+df_MURCIA<- df_MURCIA[common_col_names2]
+df_ALMERI_AEROP<- df_ALMERI_AEROP[common_col_names2]
+df_VALLAD_AEROP<- df_VALLAD_AEROP[common_col_names2]
+df_VALLAD<- df_VALLAD[common_col_names2] # ez dugu erabiliko azkenean
+df_SORIA<- df_SORIA[common_col_names2] %>% filter(nombre=="SORIA")
+df_GIJON_PUERTO<- df_GIJON_PUERTO[common_col_names2]
+df_IZAÑA<- df_IZAÑA[common_col_names2]
+df_ALACANT<- df_ALACANT[common_col_names2]
+df_GRANA_BASE_AEREA<- df_GRANA_BASE_AEREA[common_col_names2]
+df_ALACANT_ELCHE_AEROP<- df_ALACANT_ELCHE_AEROP[common_col_names2]
+df_CORDO_AEROP<- df_CORDO_AEROP[common_col_names2]
+df_PALMA_AEROP<- df_PALMA_AEROP[common_col_names2]
+df_GIRONA_AEROP<- df_GIRONA_AEROP[common_col_names2]
+df_HUESCA_AEROP<- df_HUESCA_AEROP[common_col_names2]
+
+# setwd("~/OLAST/MASTERRA/CIENCIA DE DATOS/TFM/RDATA")
+# save(df_MALAG_AEROP, df_HUELVA_ESTE, df_GIJON_AEROP, df_GIJON_AEROP, file = "tiempo_df_extra.Rdata")
+
+
+df_tiempo<- rbind(df_FORON, df_BILB, df_VALEN_AEROP, df_MADRI_AEROP, df_CADIZ, df_VIGO_AEROP, df_BARCE_AEROP,
+                  df_MALLO_AEROP, df_PAMP_AEROP, df_SEVI_AEROP, df_CORUÑA, df_GETAFE, df_MALAG_AEROP,
+                  df_DONOS_IGELD, df_SANTA_AEROP, df_CASTELL_ALMASSA, df_ZARAG_AEROP, df_HUELVA_ESTE, df_REUS_AEROP,
+                  df_MURCIA, df_ALMERI_AEROP, df_VALLAD_AEROP, df_SORIA, df_GIJON_PUERTO, df_IZAÑA, df_ALACANT,
+                  df_GRANA_BASE_AEREA, df_ALACANT_ELCHE_AEROP, df_CORDO_AEROP, df_PALMA_AEROP, df_GIRONA_AEROP, 
+                  df_HUESCA_AEROP)
+
+# setwd("~/OLAST/MASTERRA/CIENCIA DE DATOS/TFM/RDATA")
+# save(df_tiempo, file = "20211108_df_tiempo.Rdata")
+
+
+```
+
+Nos quedamos con las variables que nos interesan. Y para asegurar que tenemos todas las fecha del periodo creamos nosotros un data frame que contengan todo y lo cruzamos. Estamos asumiendo que en esos valores que no aparecen tenemos NAs. Para ello aplicaremos tecnicas para sustituir los NAs. Que se integraran a los que ya teniamos que hacer.
+
+```{r seleccio}
+
+# load("~/OLAST/MASTERRA/CIENCIA DE DATOS/TFM/RDATA/20211108_df_tiempo.Rdata")
+
+df_tiempo<- df_tiempo %>% select(fecha, nombre, tmed, prec, racha, sol)
+
+df_tiempo<- df_tiempo %>% mutate(fecha=as.Date(fecha))
+
+secu_tem<- crossing(fecha = seq(as.Date('2005-08-01'),as.Date('2021-05-31'),by = 1), nombre = unique(df_tiempo$nombre))
+
+df_tiempo<- left_join(secu_tem, df_tiempo) # Pasamos de 184368 a 185056. Sumamos 688 fechas
+
+```
+
+Empezaremos a crear las variables que queremos crear.
+
+## Creacion variables derivadas
+
+++ Diferencia temperatura de las medias de la semana pasada entre el equipo local y visitante
+++ Diferencia lluvia de las suma de la semana pasada entre el equipo local y visitante
+++ Diferencia tiempo de sol de las medias de la semana pasada entre el equipo local y visitante
+++ Rachas de viento, cantidad de lluvias, cantidad de horas de sol y temperatura del dia del partido
+
+### Creacion variables parciales
+
+Antes de conparar las variables
+
+#### Media de 7 dias temperatura
+
+En primer lugar calcularemos la media de los 7 dias. En segundo lugar veremos si la media esta por encima (1), igual (0) o mas bajo (-1) que la media del mes.
+
+```{r dif tempo}
+
+df_tiempo<- df_tiempo %>% mutate(yea=year(fecha), mes=month(fecha), dia= day(fecha))
+
+df_tiempo<- df_tiempo %>% group_by(nombre) %>% arrange(fecha) %>% mutate(tmed=ifelse(is.na(tmed),(lag(tmed,3)+ lag(tmed,2)+ lag(tmed,1)+ lead(tmed,3)+ lead(tmed,2)+ lead(tmed,1))/6,tmed)) %>% ungroup()
+
+df_tiempo<- df_tiempo %>% group_by(nombre, dia, mes) %>% arrange(fecha) %>% mutate(tmed= ifelse(is.na(tmed),
+                                                                                                mean(tmed, na.rm = TRUE),
+                                                                                                tmed)) %>% ungroup()
+
+df_tiempo<- df_tiempo %>% group_by(nombre) %>% arrange(fecha) %>% mutate(med7_tem= rollmeanr(tmed,7,fill=NA))
+
+df_tiempo<- df_tiempo %>% group_by(nombre, yea, mes) %>% mutate(relati_tem= ifelse(med7_tem>mean(tmed, na.rm = TRUE),"1",ifelse(med7_tem==mean(tmed, na.rm = TRUE),"0","-1"))) %>% ungroup()
+
+```
+
+#### Suma de 7 dias lluvia
+
+```{r dif preci}
+
+df_tiempo$prec<- gsub(",",".",df_tiempo$prec)
+
+df_tiempo<- df_tiempo %>% mutate(prec= ifelse(prec=="Acum" | prec=="Ip", NA, prec)) %>% mutate(prec= as.numeric(prec))
+
+df_tiempo<- df_tiempo %>%
+  group_by(nombre) %>%
+  arrange(fecha) %>% 
+  mutate(prec=ifelse(is.na(prec),
+                     (lag(prec,3)+ lag(prec,2)+ lag(prec,1)+ lead(prec,3)+ lead(prec,2)+ lead(prec,1))/6,
+                     prec)) %>% ungroup()
+  
+df_tiempo<- df_tiempo %>% group_by(nombre, dia, mes) %>% arrange(fecha) %>% mutate(prec=ifelse(is.na(prec),
+                                                                                               mean(prec, na.rm = TRUE),
+                                                                                               prec)) %>% ungroup()
+
+
+df_tiempo<- df_tiempo %>% group_by(nombre) %>% arrange(fecha) %>% mutate(sum7_lluvia= lag(prec,6)+ lag(prec,5)+ lag(prec,4)+ lag(prec,3)+ lag(prec,2)+ lag(prec,1)+ prec) %>% ungroup()
+
+```
+
+#### Media de 7 dias sol
+
+Lo primero que haremos sera recuperar NAs que tengamos. Para ello lo primero que haremos sera utilizar una media flotante que se vaya moviendo respecto la fecha que este. Si este paso no funcionase iriamos al historico. Esto es, nos basariamos en lo que paso en anteriores años del mismo dia y sacariamos la media.
+
+En primer lugar calcularemos la media de los 7 dias. En segundo lugar veremos si la media esta por encima (1), igual (0) o mas bajo (-1) que la media del mes.
+
+```{r dif sol}
+
+df_tiempo<- df_tiempo %>% group_by(nombre) %>% arrange(fecha) %>% mutate(sol=ifelse(is.na(sol),(lag(sol,3)+ lag(sol,2)+ lag(sol,1)+ lead(sol,3)+ lead(sol,2)+ lead(sol,1))/6,sol))
+
+
+df_tiempo<- df_tiempo %>% group_by(nombre, dia, mes) %>%  mutate(sol=ifelse(is.na(sol),
+                                                                            mean(sol, na.rm = TRUE),
+                                                                            sol)) %>% ungroup()
+
+
+df_tiempo<- df_tiempo %>% group_by(nombre) %>% arrange(fecha) %>% mutate(med7_sol= rollmeanr(sol,7,fill=NA)) %>% ungroup()
+
+
+df_tiempo<- df_tiempo %>% group_by(nombre, yea, mes) %>% mutate(relati_sol= ifelse(med7_sol>mean(sol, na.rm = TRUE),"1",ifelse(med7_sol==mean(sol, na.rm = TRUE),"0","-1"))) %>% ungroup()
+
+
+
+```
+
+#### Racha
+
+Quitamos los valores NA que tengamos simplemente.
+
+```{r racha}
+
+
+df_tiempo<- df_tiempo %>% group_by(nombre) %>% arrange(fecha) %>% mutate(racha=ifelse(is.na(racha),(lag(racha,3)+ lag(racha,2)+ lag(racha,1)+ lead(racha,3)+ lead(racha,2)+ lead(racha,1))/6,racha)) %>% ungroup()
+
+df_tiempo<- df_tiempo %>% group_by(nombre, dia, mes) %>%  mutate(racha=ifelse(is.na(racha),
+                                                                              mean(racha, na.rm = TRUE),
+                                                                              racha)) %>% ungroup()
+
+
+df_tiempo<- df_tiempo %>% ungroup() %>% select(-yea, -mes, -dia)
+
+
+# setwd("~/OLAST/MASTERRA/CIENCIA DE DATOS/TFM/RDATA")
+# save(df_tiempo, file="20211009_df_tiempo_parcial.Rdata")
+
+```
+
+
+### Crear variables finales
+
+El siguiente paso que haremos sera crear las variables que iran en el dataset final.
+
+```{r meteo deriv, message=FALSE}
+
+df_ciud <- read_excel("~/OLAST/MASTERRA/CIENCIA DE DATOS/TFM/datu baseak/ciudades1.xlsx")
+
+# x<- df20 # 380 registro
+# y<- df_tiempo
+# z<- df_ciud
+
+
+juntar_tiempo<- function(x,y,z){
+  
+  ###############################################
+  ## x: temporada actual                       ##
+  ## y: data frame temporal                    ##
+  ## z: data frame ciudades con equipo         ##
+  ###############################################
+  
+  # En esta primera parte lo que haremos sera quedarnos solamente con los datos que hagan referencia a
+  # la tempora en la que estamos
+  x<- x %>% mutate(Date=as.Date(Date))
+  y<- y %>% filter(min(x$Date)<=fecha, fecha<=max(x$Date))
+  z<- z %>% filter(HomeTeam %in% x$HomeTeam)
+  z<- z %>% filter(nombre %in% y$nombre)
+
+  x<- x %>% mutate(Date=as.character(Date))
+  y<- y %>% mutate(fecha=as.character(fecha))
+  
+  
+  
+  # Lo siguiente que haremos sera juntar toda la información en la tabla de la tempora. En base a los left_join.
+  # Para el equipo local y el visitante. En el local metemos tambien los datos crudos de precipitaciones, sol, rachas
+  # y temperatura
+  y<- left_join(y, z %>% select(-provincia))
+
+  names(y)<- c("Date", "nombre", "tmed_local", "prec_local", "racha_local", "sol_local", "med7_tem_local",
+               "relati_tem_local", "sum7_lluvia_local", "med7_sol_local", "relati_sol_local",   "HomeTeam")
+
+  y<- y %>% select(-nombre)
+
+  x<- left_join(x, y)
+
+  y<- y %>% select(-tmed_local, -prec_local, -racha_local, -sol_local)
+
+  names(y)<- c("Date", "med7_tem_visit", "relati_tem_visit", "sum7_lluvia_visit",
+             "med7_sol_visit", "relati_sol_visit",   "AwayTeam")
+
+  x<- left_join(x, y)
+  
+  # Crearemos las variables que habiamos marcado al principio de este apartado
+  x<- x %>% mutate(diff_temp_med=med7_tem_local-med7_tem_visit,
+                 diff_lluvia_sum=sum7_lluvia_local-sum7_lluvia_visit,
+                 diff_sol_med=med7_sol_local-med7_sol_visit)
+  
+  # Quitamos las variables que ya no nos interesan
+  x<- x %>% select(-med7_tem_local,-med7_tem_visit, -sum7_lluvia_local, -sum7_lluvia_visit, -med7_sol_local,-med7_sol_visit)
+
+  return(x)
+  
+  
+}
+
+
+df20<- juntar_tiempo(df20, df_tiempo, df_ciud)
+df19<- juntar_tiempo(df19, df_tiempo, df_ciud)
+df18<- juntar_tiempo(df18, df_tiempo, df_ciud)
+df17<- juntar_tiempo(df17, df_tiempo, df_ciud)
+df16<- juntar_tiempo(df16, df_tiempo, df_ciud)
+df15<- juntar_tiempo(df15, df_tiempo, df_ciud)
+df14<- juntar_tiempo(df14, df_tiempo, df_ciud)
+df13<- juntar_tiempo(df13, df_tiempo, df_ciud)
+df12<- juntar_tiempo(df12, df_tiempo, df_ciud)
+df11<- juntar_tiempo(df11, df_tiempo, df_ciud)
+df10<- juntar_tiempo(df10, df_tiempo, df_ciud)
+df09<- juntar_tiempo(df09, df_tiempo, df_ciud)
+df08<- juntar_tiempo(df08, df_tiempo, df_ciud)
+df07<- juntar_tiempo(df07, df_tiempo, df_ciud)
+df06<- juntar_tiempo(df06, df_tiempo, df_ciud)
+df05<- juntar_tiempo(df05, df_tiempo, df_ciud)
+
+
+
+```
+
+
+**************
+**************
+
+# NA restantes
+
+Lo siguiente que haremos sera juntar todas las bases de datos en un mismo data frame. Y para los NAs que nos quedan aplicaremos la media de los partidos historicos que han jugado entre el equipo local y visitante.
+
+```{r na rest}
+
+df<- rbind(df05, df06, df07, df08, df09, df10, df11, df12, df13, df14, df15, df16, df17, df18, df19, df20)
+
+sus_na<- function(x){
+  
+  if (typeof(x)=="double" | typeof(x)=="integer"){
+    
+    x<- ifelse(is.na(x), mean(x, na.rm = TRUE), x)
+  } else if ( typeof(x)=="character"){
+    
+    # x<- ifelse(is.nan(x), NA, x)
+    x<- ifelse(is.na(x), median(x, na.rm = TRUE), x)
+  }
+
+  return(x)
+}
+
+df<- df %>% group_by(HomeTeam, AwayTeam) %>% mutate_at(c(1:27), sus_na) %>% mutate_at(c(30:106), sus_na) %>% ungroup()
+
+sum(is.na(df))
+
+```
+
+Para los NAs que nos quedan (30, 10 por columna y 3 por cada registro). Asumiremos la perdida de estos registros Se valora que es mejor decisión que quitar las columnas.
+
+```{r quitar colum}
+
+df<- df %>% filter(!is.na(WHH))
+
+sum(is.na(df))
+
+```
+
+
+**************
+**************
+
+
+# Guardar archivo final
+
+Hemos terminado con la fase de la creación de la base de datos.
+
+Guardamos!
+
+```{r guardar final}
+
+dim(df)
+
+# setwd("~/OLAST/MASTERRA/CIENCIA DE DATOS/TFM/RDATA")
+# save(df, file="20211109_BaseDatos_final.Rdata")
+
+```
+
+
+**************
+**************

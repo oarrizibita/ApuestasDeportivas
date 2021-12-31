@@ -1,0 +1,1877 @@
+---
+title: "20211109_crea_modelo"
+author: "Olast Arrizibita Iriarte"
+date: " 12 de noviembre de 2021"
+output: 
+  html_document:
+    highlight: default
+    number_sections: yes
+    theme: cosmo
+    toc: yes
+    toc_depth: 3
+    code_folding: hide
+  word_document: default
+  pdf_document:
+    highlight: zenburn
+    toc: yes
+---
+
+
+<style>
+body {
+text-align: justify}
+</style>
+
+**************
+**************
+
+El objetivo de este archivo sera el de crear distintos algoritmos para poder ver cual es el que mejores resultados nos depara.
+
+```{r CaRGaR LIBRERIAS, message=FALSE, include=FALSE}
+
+library(Hmisc)
+library(zoo)
+library(ggplot2)
+library(lubridate)
+library(tidyr)
+library(readr)
+library(kableExtra)
+library(rmarkdown)
+library(caret)
+# library(jmv)
+
+## Algoritmos
+library(parsnip)
+library(randomForest)
+library(scales)
+library(isotree)
+library("xgboost")
+library("rBayesianOptimization")
+
+
+# ULTIMO
+library(dplyr)
+```
+
+
+```{r funci}
+
+```
+
+
+Lo primero que haremos sera cargar los datos
+
+```{r Cargar datos 1, message=FALSE, include=FALSE}
+
+load("~/OLAST/MASTERRA/CIENCIA DE DATOS/TFM/RDATA/20211109_BaseDatos_final.Rdata")
+
+dim(df)
+sum(is.na(df))
+sapply(X = df, FUN = function(x) sum(is.na(x)))
+```
+
+
+```{r modifi}
+
+
+# FTR: Erantzun aldagaia da (H = Victoria local, D = Empate, A = Victoria visitante)
+# HTR = Resultado del medio tiempo (H = Victoria local, D = Empate, A = Victoria visitante)
+
+df1<- df %>% select(-Date, -Div, -HTR, -jornada_casa, -jornada_fuer)
+
+df1<- df1 %>% select(-HomeTeam, -AwayTeam)
+
+# Tenemos un valor que solo aparece una vez. por lo tanto lo tenemos que sustituir.
+df1<- df1 %>% mutate(relati_tem_visit=ifelse(relati_tem_visit=="0", "1",relati_tem_visit))
+
+# table(df$FTR)
+#    A    D    H 
+# 1726 1493 2861 
+
+df1$FTR<- factor(df1$FTR, levels = c("H", "D", "A"))
+
+
+```
+
+```{r modifi2}
+
+sapply(X = df_modi, FUN = function(x) sum(x<0))
+
+# Prueba 1
+df_modi<- df1 %>% mutate(cant_no_gana=cant_no_gana_casa_local-cant_no_gana_fuera_visit,
+                         cant_no_gana_abs=cant_no_gana_abso_local-cant_no_gana_abso_visit,
+                         cant_gana=cant_gana_casa_local-cant_gana_fuera_visit,
+                         cant_gana_abso=cant_gana_abso_local-cant_gana_abso_visit,
+                         cant_perd=cant_perd_casa_local-cant_perd_fuera_visit,
+                         cant_perd_abso=cant_perd_abso_local-cant_perd_abso_visit,
+                         posicion_final=posicion_final_local-posicion_final_visit,
+                         acumu_5part=acumu_5part_local-acumu_5part_visit,
+                         acumu_5part_abso=acumu_5part_local_abso-acumu_5part_visit_abso,
+                         acumu_enc3gol=acumu_enc3gol_local-acumu_enc3gol_visit,
+                         acumu_enc3gol_abso=acumu_enc3gol_local_abso-acumu_enc3gol_visit_abso,
+                         acumu_reali3gol=acumu_reali3gol_local-acumu_reali3gol_visit,
+                         acumu_reali3gol_abso=acumu_reali3gol_local_abso-acumu_reali3gol_visit_abso,
+                         acumu_enc3gol_media=acumu_enc3gol_media_local-acumu_enc3gol_media_visit,
+                         acumu_enc3gol_media_abso=acumu_enc3gol_media_local_abso-acumu_enc3gol_media_visit_abso,
+                         acumu_reali3gol_media=acumu_reali3gol_media_local-acumu_reali3gol_media_visit,
+                         acumu_reali3gol_media_abso=acumu_reali3gol_media_local_abso-acumu_reali3gol_media_visit_abso,
+                         mejor_racha=mejor_racha_loca-mejor_racha_visit,
+                         mejor_racha_abso=mejor_racha_abso_local-mejor_racha_abso_visit,
+                         peor_racha=peor_racha_loca-peor_racha_visit,
+                         peor_racha_abso=peor_racha_abso_local-peor_racha_abso_visit,
+                         gol_ante=gol_ante_local-gol_ante_visi,
+                         gol_ante_abso=gol_ante_local_abso-gol_ante_visi_abso,
+                         resul_ante=resul_ante_local-resul_ante_visi,
+                         resul_ante_abso=resul_ante_local_abso-resul_ante_visi_abso,
+                         disp_ante=disp_ante_local-disp_ante_visi,
+                         disp_ante_abso=disp_ante_local_abso-disp_ante_visi_abso,
+                         disp_puer_ante=disp_puer_ante_local-disp_puer_ante_visi,
+                         disp_puer_ante_abso=disp_puer_ante_local_abso-disp_puer_ante_visi_abso,
+                         roj_ante=roj_ante_local-roj_ante_visi,
+                         roj_ante_abso=roj_ante_local_abso-roj_ante_visi_abso)
+
+# Prueba 2
+sumar<- function(x){
+  x<- x+1
+  return(x)
+}
+
+df_modi<- df1 %>% mutate_at(c(24:88), sumar)
+
+
+df_modi<- df_modi %>% mutate(cant_no_gana=cant_no_gana_casa_local/cant_no_gana_fuera_visit,
+                         cant_no_gana_abs=cant_no_gana_abso_local/cant_no_gana_abso_visit,
+                         cant_gana=cant_gana_casa_local/cant_gana_fuera_visit,
+                         cant_gana_abso=cant_gana_abso_local/cant_gana_abso_visit,
+                         cant_perd=cant_perd_casa_local/cant_perd_fuera_visit,
+                         cant_perd_abso=cant_perd_abso_local/cant_perd_abso_visit,
+                         posicion_final=posicion_final_local/posicion_final_visit,
+                         acumu_5part=acumu_5part_local/acumu_5part_visit,
+                         acumu_5part_abso=acumu_5part_local_abso/acumu_5part_visit_abso,
+                         acumu_enc3gol=acumu_enc3gol_local/acumu_enc3gol_visit,
+                         acumu_enc3gol_abso=acumu_enc3gol_local_abso/acumu_enc3gol_visit_abso,
+                         acumu_reali3gol=acumu_reali3gol_local/acumu_reali3gol_visit,
+                         acumu_reali3gol_abso=acumu_reali3gol_local_abso/acumu_reali3gol_visit_abso,
+                         acumu_enc3gol_media=acumu_enc3gol_media_local/acumu_enc3gol_media_visit,
+                         acumu_enc3gol_media_abso=acumu_enc3gol_media_local_abso/acumu_enc3gol_media_visit_abso,
+                         acumu_reali3gol_media=acumu_reali3gol_media_local/acumu_reali3gol_media_visit,
+                         acumu_reali3gol_media_abso=acumu_reali3gol_media_local_abso/acumu_reali3gol_media_visit_abso,
+                         mejor_racha=mejor_racha_loca/mejor_racha_visit,
+                         mejor_racha_abso=mejor_racha_abso_local/mejor_racha_abso_visit,
+                         peor_racha=peor_racha_loca/peor_racha_visit,
+                         peor_racha_abso=peor_racha_abso_local/peor_racha_abso_visit,
+                         gol_ante=gol_ante_local/gol_ante_visi,
+                         gol_ante_abso=gol_ante_local_abso/gol_ante_visi_abso,
+                         resul_ante=resul_ante_local/resul_ante_visi,
+                         resul_ante_abso=resul_ante_local_abso/resul_ante_visi_abso,
+                         disp_ante=disp_ante_local/disp_ante_visi,
+                         disp_ante_abso=disp_ante_local_abso/disp_ante_visi_abso,
+                         disp_puer_ante=disp_puer_ante_local/disp_puer_ante_visi,
+                         disp_puer_ante_abso=disp_puer_ante_local_abso/disp_puer_ante_visi_abso,
+                         roj_ante=roj_ante_local/roj_ante_visi,
+                         roj_ante_abso=roj_ante_local_abso/roj_ante_visi_abso)
+
+
+df_modi1<- df_modi %>% select(FTR, B365H, B365D, B365A, BWH, BWD, BWA, IWH, IWD, IWA, WHH, WHD, WHA, VCH,
+                             VCD, VCA, tmed_local, prec_local, racha_local, sol_local, relati_tem_local,
+                             relati_sol_local, relati_tem_visit, relati_sol_visit, diff_temp_med,
+                             diff_lluvia_sum, diff_sol_med, cant_no_gana, cant_no_gana_abs, cant_gana,
+                             cant_gana_abso, cant_perd, cant_perd_abso, posicion_final, acumu_5part,
+                             acumu_5part_abso, acumu_enc3gol, acumu_enc3gol_abso, acumu_reali3gol,
+                             acumu_reali3gol_abso, acumu_enc3gol_media, acumu_enc3gol_media_abso,
+                             acumu_reali3gol_media, acumu_reali3gol_media_abso, mejor_racha, mejor_racha_abso,
+                             peor_racha, peor_racha_abso, gol_ante, gol_ante_abso, resul_ante, resul_ante_abso,
+                             disp_ante, disp_ante_abso, disp_puer_ante, disp_puer_ante_abso, roj_ante, roj_ante_abso)
+
+
+
+df_modi2<- df_modi %>% select(-B365H, -B365D, -B365A, -BWH, -BWD, -BWA, -IWH, -IWD, -IWA, -WHH, -WHD, -WHA, -VCH,
+                             -VCD, -VCA, -tmed_local, -prec_local, -racha_local, -sol_local, -relati_tem_local,
+                             -relati_sol_local, -relati_tem_visit, -relati_sol_visit, -diff_temp_med,
+                             -diff_lluvia_sum, -diff_sol_med)
+
+
+df_modi3<- df_modi %>% select(FTR, B365H, B365D, B365A, BWH, BWD, BWA, IWH, IWD, IWA, WHH, WHD, WHA, VCH,VCD,
+                              VCA, apues_derr_loc, apues_vict_loc,apues_empa_loc)
+
+
+df_modi4<- df_modi %>% select(-tmed_local, -prec_local, -racha_local, -sol_local, -relati_tem_local,
+                             -relati_sol_local, -relati_tem_visit, -relati_sol_visit, -diff_temp_med,
+                             -diff_lluvia_sum, -diff_sol_med)
+
+
+
+
+
+
+```
+
+
+
+**************
+**************
+
+# Random forest
+
+## Todas las variables
+
+Vamos a empezar creando un modelo Random forest. Para ello vamos utilizar distintos caminos. Para empezar utilizaremos el camino mas convencional y correcto. Entrenaremos el modelo con las tres categorías de las que consta. Ganar, empatar y perder. 
+
+En segundo lugar, lo que haremos sera crear tres modelos diferentes cada uno de ellos para una categoría. Y luego intentaremos juntar los tres para ver la capacidad predictiva que tiene en la base de datos del test.
+
+### Victoria, empate, derrota
+
+Empezamos con el camino mas directo y correcto. Para intentar conseguir los mejores hiperparametros utilizaremos una optimización bayesiana.
+
+```{r random1}
+
+
+BBDD<- data.frame(df1)
+
+
+scoring_function1 <- function(N, M, V=1, k=6) {
+  require(dplyr)
+  require(parsnip)
+  # P=ifelse(P==0,FALSE,TRUE)
+  folds = createFolds(BBDD[,V], k = k)
+  cv = lapply(folds, function(x) { 
+    training_fold = BBDD[-x, ]
+    test_fold = BBDD[x, ]
+    # classifier = randomForest(x = training_fold[,-V],
+    #                         y = training_fold$micro_proteccion_celular,
+    #                         ntree = N,
+    #                         mtry=M, importance=TRUE,
+    #                         proximity=TRUE)
+    classifier = parsnip::rand_forest(mode  = "classification",
+                             mtry  = M,
+                             trees = N) # BERRIA
+    classifier <- classifier %>% fit(FTR~.,data=training_fold) # BERRIA
+    y_pred = predict(classifier, new_data = test_fold[,-V]) # BERRIA
+    # y_pred = predict(classifier, newdata = test_fold[,-V])
+    
+    # cm = table(test_fold[, V], y_pred)
+    cm = table(test_fold[, V], y_pred$.pred_class) # BERRIA
+    print(cm)
+    accuracy = (cm[1,1]+cm[2,2]+cm[3,3])/(cm[1,1]+cm[1,2]+cm[1,3]+cm[2,1]+
+                                            cm[2,2]+cm[2,3]+cm[3,1]+cm[3,2]+cm[3,3])
+    return(accuracy)  
+  
+  })
+  accuracy = mean(as.numeric(cv))
+  return(list(Score = accuracy))
+}
+
+limites <- list(
+  N= c(1L, 1000L),
+  M= c(1L, 98L)
+  # P= c(0L, 1L) TRUE edo FALSE kasurako
+)
+
+library("ParBayesianOptimization")
+library(doParallel)
+
+cl <- makeCluster(5)
+registerDoParallel(cl)
+clusterExport(cl,c('BBDD'))
+clusterEvalQ(cl,expr= {
+  c(library(e1071),
+    library(caret),
+    library(caTools),
+    library(randomForest))
+  })
+
+optObj <- bayesOpt(
+      FUN = scoring_function1
+      , bounds = limites
+      , initPoints = 5
+      , iters.n = 10
+      , iters.k = 1
+      , parallel = TRUE
+      , acq="ei"
+    )
+
+stopCluster(cl)
+registerDoSEQ()
+
+
+
+
+```
+
+Entrenamos el modelo.
+
+```{r random2}
+
+BBDD<- data.frame(df1)
+
+folds = createFolds(BBDD[,1], k = 3)
+training_fold = BBDD[-folds$Fold3, ]
+test_fold = BBDD[folds$Fold3, ]
+
+
+rf1 <-rand_forest(mode  = "classification",
+                  mtry  = 35,
+                  trees = 621)
+
+rf1<- rf1 %>%
+          set_engine(
+            engine     = "ranger",
+            importance = "impurity",
+            seed       = 123
+          )
+
+rf1<- rf1 %>% fit(FTR~.,data=training_fold)
+
+y_pred = predict(rf1, new_data = test_fold[,-1])
+
+cm<- table(y_pred$.pred_class, test_fold$FTR)
+(cm[1,1]+cm[2,2]+cm[3,3])/(cm[1,1]+cm[1,2]+cm[1,3]+cm[2,1]+cm[2,2]+cm[2,3]+cm[3,1]+cm[3,2]+cm[3,3])
+
+# DISTINTAS PRUEBAS:
+# mtry=84, ntree=1000 ==> 0.5429418
+# mtry=84, ntree=2000 ==> 0.5449161
+# mtry=15, ntree=4413 ==> 0.5512821
+
+# y_pred = predict(rf1, new_data = training_fold[,-1])
+# 
+# cm<- table(y_pred$.pred_class, training_fold$FTR)
+# (cm[1,1]+cm[2,2]+cm[3,3])/(cm[1,1]+cm[1,2]+cm[1,3]+cm[2,1]+cm[2,2]+cm[2,3]+cm[3,1]+cm[3,2]+cm[3,3])
+
+```
+
+
+Visto que el resultado no es el mejor. Estamos interesados en ver cuales son las variables que mas influyen en el modelo. Para luego solamente con ellas hacer un modelo nuevo con la esperanza de que el accuracy se incremente.
+
+```{r ranforest3, echo=FALSE, fig.height=7, fig.width=9}
+
+
+library(tibble)
+# Importancia
+importancia_pred <- rf1$fit$variable.importance %>%
+                    enframe(name = "predictor", value = "importancia")
+
+
+importancia_pred_aa<- importancia_pred %>% arrange(desc(importancia))
+
+importancia_pred_aa<- importancia_pred_aa[1:50,]
+
+# Gráfico
+fig<- ggplot(
+  data = importancia_pred_aa,
+  aes(x    = reorder(predictor, importancia),
+      y    = importancia,
+      fill = importancia)
+  ) +
+  labs(x = "predictor", title = "Importancia predictores (pureza de nodos)") +
+  geom_col() +
+  scale_fill_viridis_c() +
+  coord_flip() +
+  theme_bw() +
+  theme(legend.position = "none")
+
+
+fig
+
+
+```
+
+Tal como hemos dicho seleccionamos las variables que mas influyen
+
+```{r random4}
+
+training_fold2<- training_fold %>%
+  select(FTR, BWH, WHH, tmed_local, VCA, diff_lluvia_sum, diff_temp_med, diff_sol_med, BWA,
+racha_local, B365H, sol_local, IWA, B365A, BWD, puntos_local, VCH, puntos_visit,
+disp_ante_visi_abso, IWH, diff_punto, disp_ante_local_abso, disp_ante_visi,
+WHA, disp_ante_local, WHD, posicion_media_visit, disp_puer_ante_visi_abso, IWD, clasifi_casa, posicion_media_local,
+posicion_final_visit, B365D, VCD, acumu_5part_local, clasifi_fuer, acumu_5part_visit, acumu_reali3gol_local,posicion_final_local, prec_local, acumu_enc3gol_local, acumu_reali3gol_visit, acumu_enc3gol_visit, acumu_5part_local_abso, disp_puer_ante_visi, acumu_5part_visit_abso, acumu_enc3gol_visit_abso, disp_puer_ante_local_abso, acumu_enc3gol_local_abso, disp_puer_ante_local, acumu_reali3gol_local_abso)
+
+test_fold2<- test_fold %>%
+  select(FTR, BWH, WHH, tmed_local, VCA, diff_lluvia_sum, diff_temp_med, diff_sol_med, BWA,
+racha_local, B365H, sol_local, IWA, B365A, BWD, puntos_local, VCH, puntos_visit,
+disp_ante_visi_abso, IWH, diff_punto, disp_ante_local_abso, disp_ante_visi,
+WHA, disp_ante_local, WHD, posicion_media_visit, disp_puer_ante_visi_abso, IWD, clasifi_casa, posicion_media_local,
+posicion_final_visit, B365D, VCD, acumu_5part_local, clasifi_fuer, acumu_5part_visit, acumu_reali3gol_local,posicion_final_local, prec_local, acumu_enc3gol_local, acumu_reali3gol_visit, acumu_enc3gol_visit, acumu_5part_local_abso, disp_puer_ante_visi, acumu_5part_visit_abso, acumu_enc3gol_visit_abso, disp_puer_ante_local_abso, acumu_enc3gol_local_abso, disp_puer_ante_local, acumu_reali3gol_local_abso)
+
+
+
+
+
+rf2 <-rand_forest(mode  = "classification",
+                  mtry  = 35,
+                  trees = 621)
+
+rf2<- rf2 %>% fit(FTR~.,
+         data=training_fold2)
+
+y_pred = predict(rf2, new_data = test_fold2[,-1])
+
+cm<- table(y_pred$.pred_class, test_fold$FTR)
+(cm[1,1]+cm[2,2]+cm[3,3])/(cm[1,1]+cm[1,2]+cm[1,3]+cm[2,1]+cm[2,2]+cm[2,3]+cm[3,1]+cm[3,2]+cm[3,3])
+
+###########################################
+###########################################
+
+
+BBDD<- data.frame(df1) %>%
+  select(FTR, BWH, WHH, tmed_local, VCA, diff_lluvia_sum, diff_temp_med, diff_sol_med, BWA,
+         racha_local, B365H, sol_local, IWA, B365A, BWD, puntos_local, VCH, puntos_visit,
+         disp_ante_visi_abso, IWH, diff_punto, disp_ante_local_abso, disp_ante_visi,
+         WHA, disp_ante_local, WHD, posicion_media_visit, disp_puer_ante_visi_abso, IWD,
+         clasifi_casa, posicion_media_local, posicion_final_visit, B365D, VCD, acumu_5part_local,
+         clasifi_fuer, acumu_5part_visit, acumu_reali3gol_local,posicion_final_local, prec_local,
+         acumu_enc3gol_local, acumu_reali3gol_visit, acumu_enc3gol_visit, acumu_5part_local_abso,
+         disp_puer_ante_visi, acumu_5part_visit_abso, acumu_enc3gol_visit_abso, disp_puer_ante_local_abso,
+         acumu_enc3gol_local_abso, disp_puer_ante_local, acumu_reali3gol_local_abso)
+
+
+scoring_function1 <- function(N, M, V=1, k=6) {
+  require(dplyr)
+  require(parsnip)
+  # P=ifelse(P==0,FALSE,TRUE)
+  folds = createFolds(BBDD[,V], k = k)
+  cv = lapply(folds, function(x) { 
+    training_fold = BBDD[-x, ]
+    test_fold = BBDD[x, ]
+    # classifier = randomForest(x = training_fold[,-V],
+    #                         y = training_fold$micro_proteccion_celular,
+    #                         ntree = N,
+    #                         mtry=M, importance=TRUE,
+    #                         proximity=TRUE)
+    classifier = parsnip::rand_forest(mode  = "classification",
+                             mtry  = M,
+                             trees = N) # BERRIA
+    classifier <- classifier %>% fit(FTR~.,data=training_fold) # BERRIA
+    y_pred = predict(classifier, new_data = test_fold[,-V]) # BERRIA
+    # y_pred = predict(classifier, newdata = test_fold[,-V])
+    
+    # cm = table(test_fold[, V], y_pred)
+    cm = table(test_fold[, V], y_pred$.pred_class) # BERRIA
+    print(cm)
+    accuracy = (cm[1,1]+cm[2,2]+cm[3,3])/(cm[1,1]+cm[1,2]+cm[1,3]+cm[2,1]+
+                                            cm[2,2]+cm[2,3]+cm[3,1]+cm[3,2]+cm[3,3])
+    return(accuracy)  
+  
+  })
+  accuracy = mean(as.numeric(cv))
+  return(list(Score = accuracy))
+}
+
+limites <- list(
+  N= c(1L, 4000L),
+  M= c(1L, 50L)
+  # P= c(0L, 1L) TRUE edo FALSE kasurako
+)
+
+library("ParBayesianOptimization")
+library(doParallel)
+
+cl <- makeCluster(5)
+registerDoParallel(cl)
+clusterExport(cl,c('BBDD'))
+clusterEvalQ(cl,expr= {
+  c(library(e1071),
+    library(caret),
+    library(caTools),
+    library(randomForest))
+  })
+
+optObj <- bayesOpt(
+      FUN = scoring_function1
+      , bounds = limites
+      , initPoints = 5
+      , iters.n = 10
+      , iters.k = 1
+      , parallel = TRUE
+      , acq="ei"
+    )
+
+stopCluster(cl)
+registerDoSEQ()
+
+
+folds = createFolds(BBDD[,1], k = 3)
+training_fold2 = BBDD[-folds$Fold3, ]
+test_fold2 = BBDD[folds$Fold3, ]
+#
+tem_var<- df["Div"][folds$Fold3, ]
+
+rf1 <-rand_forest(mode  = "classification",
+                  mtry  = 16,
+                  trees = 916)
+
+rf1<- rf1 %>%
+          set_engine(
+            engine     = "ranger",
+            importance = "impurity",
+            seed       = 123
+          )
+
+rf1<- rf1 %>% fit(FTR~.,data=training_fold2)
+
+y_pred = predict(rf1, new_data = test_fold2[,-1])
+
+cm<- table(y_pred$.pred_class, test_fold2$FTR)
+(cm[1,1]+cm[2,2]+cm[3,3])/(cm[1,1]+cm[1,2]+cm[1,3]+cm[2,1]+cm[2,2]+cm[2,3]+cm[3,1]+cm[3,2]+cm[3,3])
+
+# mtry=84, ntree=1000 ==> 0.5429418
+# mtry=84, ntree=2000 ==> 0.5449161
+# mtry=15, ntree=4413 ==> 0.5512821
+
+
+aa<- data.frame(temp=tem_var$Div, resul=test_fold2$FTR, pred=y_pred)
+names(aa)<- c("temp", "resul", "predic")
+
+aa<- aa %>% mutate(acierto=ifelse(resul==predic, 1,0)) %>% group_by(temp, acierto) %>% summarise(n=n())
+
+
+ggplot(data=aa, aes(x=temp, y=n, fill=acierto)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="top")
+
+```
+
+Tal como hemos dicho seleccionamos las variables que mas influyen
+
+```{r random5}
+
+training_fold3<- training_fold %>%
+  select(FTR, BWH, WHH, tmed_local, VCA, diff_lluvia_sum, diff_temp_med, diff_sol_med, BWA,
+racha_local, B365H, sol_local, IWA, B365A, BWD, puntos_local, VCH, puntos_visit,
+disp_ante_visi_abso, IWH, diff_punto, disp_ante_local_abso, disp_ante_visi,
+WHA, disp_ante_local, WHD)
+
+test_fold3<- test_fold %>%
+  select(FTR, BWH, WHH, tmed_local, VCA, diff_lluvia_sum, diff_temp_med, diff_sol_med, BWA,
+racha_local, B365H, sol_local, IWA, B365A, BWD, puntos_local, VCH, puntos_visit,
+disp_ante_visi_abso, IWH, diff_punto, disp_ante_local_abso, disp_ante_visi,
+WHA, disp_ante_local, WHD)
+
+
+
+
+
+rf2 <-rand_forest(mode  = "classification",
+                  mtry  = 35,
+                  trees = 621)
+
+rf2<- rf2 %>% fit(FTR~.,
+         data=training_fold3)
+
+y_pred = predict(rf2, new_data = test_fold3[,-1])
+
+cm<- table(y_pred$.pred_class, test_fold3$FTR)
+(cm[1,1]+cm[2,2]+cm[3,3])/(cm[1,1]+cm[1,2]+cm[1,3]+cm[2,1]+cm[2,2]+cm[2,3]+cm[3,1]+cm[3,2]+cm[3,3])
+
+###########################################
+###########################################
+
+
+BBDD<- data.frame(df1) %>%
+  select(FTR, BWH, WHH, tmed_local, VCA, diff_lluvia_sum, diff_temp_med, diff_sol_med, BWA,
+         racha_local, B365H, sol_local, IWA, B365A, BWD, puntos_local, VCH, puntos_visit,
+         disp_ante_visi_abso, IWH)
+
+
+scoring_function1 <- function(N, M, V=1, k=6) {
+  require(dplyr)
+  require(parsnip)
+  # P=ifelse(P==0,FALSE,TRUE)
+  folds = createFolds(BBDD[,V], k = k)
+  cv = lapply(folds, function(x) { 
+    training_fold = BBDD[-x, ]
+    test_fold = BBDD[x, ]
+    # classifier = randomForest(x = training_fold[,-V],
+    #                         y = training_fold$micro_proteccion_celular,
+    #                         ntree = N,
+    #                         mtry=M, importance=TRUE,
+    #                         proximity=TRUE)
+    classifier = parsnip::rand_forest(mode  = "classification",
+                             mtry  = M,
+                             trees = N) # BERRIA
+    classifier <- classifier %>% fit(FTR~.,data=training_fold) # BERRIA
+    y_pred = predict(classifier, new_data = test_fold[,-V]) # BERRIA
+    # y_pred = predict(classifier, newdata = test_fold[,-V])
+    
+    # cm = table(test_fold[, V], y_pred)
+    cm = table(test_fold[, V], y_pred$.pred_class) # BERRIA
+    print(cm)
+    accuracy = (cm[1,1]+cm[2,2]+cm[3,3])/(cm[1,1]+cm[1,2]+cm[1,3]+cm[2,1]+
+                                            cm[2,2]+cm[2,3]+cm[3,1]+cm[3,2]+cm[3,3])
+    return(accuracy)  
+  
+  })
+  accuracy = mean(as.numeric(cv))
+  return(list(Score = accuracy))
+}
+
+limites <- list(
+  N= c(1L, 3000L),
+  M= c(1L, 19L)
+  # P= c(0L, 1L) TRUE edo FALSE kasurako
+)
+
+library("ParBayesianOptimization")
+library(doParallel)
+
+cl <- makeCluster(5)
+registerDoParallel(cl)
+clusterExport(cl,c('BBDD'))
+clusterEvalQ(cl,expr= {
+  c(library(e1071),
+    library(caret),
+    library(caTools),
+    library(randomForest))
+  })
+
+optObj <- bayesOpt(
+      FUN = scoring_function1
+      , bounds = limites
+      , initPoints = 5
+      , iters.n = 10
+      , iters.k = 1
+      , parallel = TRUE
+      , acq="ei"
+    )
+
+stopCluster(cl)
+registerDoSEQ()
+
+
+folds = createFolds(BBDD[,1], k = 3)
+training_fold2 = BBDD[-folds$Fold3, ]
+test_fold2 = BBDD[folds$Fold3, ]
+#
+tem_var<- df["Div"][folds$Fold3, ]
+
+rf1 <-rand_forest(mode  = "classification",
+                  mtry  = 16,
+                  trees = 916)
+
+rf1<- rf1 %>%
+          set_engine(
+            engine     = "ranger",
+            importance = "impurity",
+            seed       = 123
+          )
+
+rf1<- rf1 %>% fit(FTR~.,data=training_fold2)
+
+y_pred = predict(rf1, new_data = test_fold2[,-1])
+
+cm<- table(y_pred$.pred_class, test_fold2$FTR)
+(cm[1,1]+cm[2,2]+cm[3,3])/(cm[1,1]+cm[1,2]+cm[1,3]+cm[2,1]+cm[2,2]+cm[2,3]+cm[3,1]+cm[3,2]+cm[3,3])
+
+# mtry=84, ntree=1000 ==> 0.5429418
+# mtry=84, ntree=2000 ==> 0.5449161
+# mtry=15, ntree=4413 ==> 0.5512821
+
+
+aa<- data.frame(temp=tem_var$Div, resul=test_fold2$FTR, pred=y_pred)
+names(aa)<- c("temp", "resul", "predic")
+
+aa<- aa %>% mutate(acierto=ifelse(resul==predic, 1,0)) %>% group_by(temp, acierto) %>% summarise(n=n())
+
+
+ggplot(data=aa, aes(x=temp, y=n, fill=acierto)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="top")
+
+```
+
+### Binomial
+
+tal como hemos dicho ahora crearemos distintos modelos con la variable respuesta binomial para luego "juntarlos".
+
+#### Victoria VS No-victoria
+
+```{r randoVicto1}
+
+df_victo<- df1
+
+levels(df_victo$FTR)<- c("H", "No_H", "No_H")
+
+BBDD<- data.frame(df_victo)
+
+
+scoring_function1 <- function(N, M, V=1, k=6) {
+  require(dplyr)
+  require(parsnip)
+  # P=ifelse(P==0,FALSE,TRUE)
+  folds = createFolds(BBDD[,V], k = k)
+  cv = lapply(folds, function(x) { 
+    training_fold = BBDD[-x, ]
+    test_fold = BBDD[x, ]
+    # classifier = randomForest(x = training_fold[,-V],
+    #                         y = training_fold$micro_proteccion_celular,
+    #                         ntree = N,
+    #                         mtry=M, importance=TRUE,
+    #                         proximity=TRUE)
+    classifier = parsnip::rand_forest(mode  = "classification",
+                             mtry  = M,
+                             trees = N) # BERRIA
+    classifier <- classifier %>% fit(FTR~.,data=training_fold) # BERRIA
+    y_pred = predict(classifier, new_data = test_fold[,-V]) # BERRIA
+    # y_pred = predict(classifier, newdata = test_fold[,-V])
+    
+    # cm = table(test_fold[, V], y_pred)
+    cm = table(test_fold[, V], y_pred$.pred_class) # BERRIA
+    print(cm)
+    accuracy = (cm[1,1]+cm[2,2])/(cm[1,1]+cm[1,2]+
+                                    cm[2,1]+cm[2,2])
+    return(accuracy)  
+  
+  })
+  accuracy = mean(as.numeric(cv))
+  return(list(Score = accuracy))
+}
+
+limites <- list(
+  N= c(1L, 1000L),
+  M= c(1L, 98L)
+  # P= c(0L, 1L) TRUE edo FALSE kasurako
+)
+
+library("ParBayesianOptimization")
+library(doParallel)
+
+cl <- makeCluster(5)
+registerDoParallel(cl)
+clusterExport(cl,c('BBDD'))
+clusterEvalQ(cl,expr= {
+  c(library(e1071),
+    library(caret),
+    library(caTools),
+    library(randomForest))
+  })
+
+optObj <- bayesOpt(
+      FUN = scoring_function1
+      , bounds = limites
+      , initPoints = 5
+      , iters.n = 10
+      , iters.k = 1
+      , parallel = TRUE
+      , acq="ei"
+    )
+
+stopCluster(cl)
+registerDoSEQ()
+
+
+```
+
+```{r randoVicto2}
+
+BBDD<- data.frame(df_victo)
+
+folds_com = createFolds(BBDD[,1], k = 3)
+training_vict_fold = BBDD[-folds_com$Fold3, ]
+test_vict_fold = BBDD[folds_com$Fold3, ]
+
+
+rf1 <-rand_forest(mode  = "classification",
+                  mtry  = 14,
+                  trees = 848)
+
+rf1<- rf1 %>%
+          set_engine(
+            engine     = "ranger",
+            importance = "impurity",
+            seed       = 123
+          )
+
+rf1<- rf1 %>% fit(FTR~.,data=training_vict_fold)
+
+y_pred_victo = predict(rf1, new_data = test_vict_fold[,-1])
+
+cm<- table(y_pred_victo$.pred_class, test_vict_fold$FTR)
+cm
+(cm[1,1]+cm[2,2])/(cm[1,1]+cm[1,2]+cm[2,1]+cm[2,2])
+
+# mtry=14, ntree=848 ==> 0.656
+# mtry=, ntree= ==> 
+# mtry=, ntree= ==> 
+
+# y_pred = predict(rf1, new_data = training_fold[,-1])
+# 
+# cm<- table(y_pred$.pred_class, training_fold$FTR)
+# (cm[1,1]+cm[2,2]+cm[3,3])/(cm[1,1]+cm[1,2]+cm[1,3]+cm[2,1]+cm[2,2]+cm[2,3]+cm[3,1]+cm[3,2]+cm[3,3])
+
+```
+
+#### Derrota VS No-Derrota
+
+```{r randoDerr1}
+
+df_derro<- df1
+
+levels(df_derro$FTR)<- c("No_A", "No_A", "A")
+
+BBDD<- data.frame(df_derro)
+
+
+scoring_function2 <- function(N, M, V=1, k=6) {
+  require(dplyr)
+  require(parsnip)
+  # P=ifelse(P==0,FALSE,TRUE)
+  folds = createFolds(BBDD[,V], k = k)
+  cv = lapply(folds, function(x) { 
+    training_fold = BBDD[-x, ]
+    test_fold = BBDD[x, ]
+    # classifier = randomForest(x = training_fold[,-V],
+    #                         y = training_fold$micro_proteccion_celular,
+    #                         ntree = N,
+    #                         mtry=M, importance=TRUE,
+    #                         proximity=TRUE)
+    classifier = parsnip::rand_forest(mode  = "classification",
+                             mtry  = M,
+                             trees = N) # BERRIA
+    classifier <- classifier %>% fit(FTR~.,data=training_fold) # BERRIA
+    y_pred = predict(classifier, new_data = test_fold[,-V]) # BERRIA
+    # y_pred = predict(classifier, newdata = test_fold[,-V])
+    
+    # cm = table(test_fold[, V], y_pred)
+    cm = table(test_fold[, V], y_pred$.pred_class) # BERRIA
+    print(cm)
+    accuracy = (cm[1,1]+cm[2,2])/(cm[1,1]+cm[1,2]+
+                                    cm[2,1]+cm[2,2])
+    return(accuracy)  
+  
+  })
+  accuracy = mean(as.numeric(cv))
+  return(list(Score = accuracy))
+}
+
+limites <- list(
+  N= c(1L, 1000L),
+  M= c(1L, 98L)
+  # P= c(0L, 1L) TRUE edo FALSE kasurako
+)
+
+library("ParBayesianOptimization")
+library(doParallel)
+
+cl <- makeCluster(5)
+registerDoParallel(cl)
+clusterExport(cl,c('BBDD'))
+clusterEvalQ(cl,expr= {
+  c(library(e1071),
+    library(caret),
+    library(caTools),
+    library(randomForest))
+  })
+
+optObj1 <- bayesOpt(
+      FUN = scoring_function2
+      , bounds = limites
+      , initPoints = 5
+      , iters.n = 10
+      , iters.k = 1
+      , parallel = TRUE
+      , acq="ei"
+    )
+
+stopCluster(cl)
+registerDoSEQ()
+
+
+```
+
+```{r randoDerr2}
+
+BBDD<- data.frame(df_derro)
+
+training_derr_fold = BBDD[-folds_com$Fold3, ]
+test_derr_fold = BBDD[folds_com$Fold3, ]
+
+
+rf_derr <-rand_forest(mode  = "classification",
+                  mtry  = 13,
+                  trees = 783)
+
+rf_derr<- rf_derr %>%
+  set_engine(
+    engine     = "ranger",
+    importance = "impurity",
+    seed       = 123
+          )
+
+rf_derr<- rf_derr %>% fit(FTR~.,data=training_derr_fold)
+
+y_pred_derr = predict(rf_derr, new_data = test_derr_fold[,-1])
+
+cm<- table(y_pred_derr$.pred_class, test_derr_fold$FTR)
+cm
+(cm[1,1]+cm[2,2])/(cm[1,1]+cm[1,2]+cm[2,1]+cm[2,2])
+
+# mtry=13, ntree=783 ==> 0.739
+# mtry=, ntree= ==> 
+# mtry=, ntree= ==> 
+
+# y_pred = predict(rf1, new_data = training_fold[,-1])
+# 
+# cm<- table(y_pred$.pred_class, training_fold$FTR)
+# (cm[1,1]+cm[2,2]+cm[3,3])/(cm[1,1]+cm[1,2]+cm[1,3]+cm[2,1]+cm[2,2]+cm[2,3]+cm[3,1]+cm[3,2]+cm[3,3])
+
+```
+
+#### Empate VS No-Empate
+
+```{r randoEmpa1}
+
+df_empa<- df1
+
+levels(df_empa$FTR)<- c("No_D", "D", "No_D")
+
+BBDD<- data.frame(df_empa)
+
+
+scoring_function3 <- function(N, M, V=1, k=6) {
+  require(dplyr)
+  require(parsnip)
+  # P=ifelse(P==0,FALSE,TRUE)
+  folds = createFolds(BBDD[,V], k = k)
+  cv = lapply(folds, function(x) { 
+    training_fold = BBDD[-x, ]
+    test_fold = BBDD[x, ]
+    # classifier = randomForest(x = training_fold[,-V],
+    #                         y = training_fold$micro_proteccion_celular,
+    #                         ntree = N,
+    #                         mtry=M, importance=TRUE,
+    #                         proximity=TRUE)
+    classifier = parsnip::rand_forest(mode  = "classification",
+                             mtry  = M,
+                             trees = N) # BERRIA
+    classifier <- classifier %>% fit(FTR~.,data=training_fold) # BERRIA
+    y_pred = predict(classifier, new_data = test_fold[,-V]) # BERRIA
+    # y_pred = predict(classifier, newdata = test_fold[,-V])
+    
+    # cm = table(test_fold[, V], y_pred)
+    cm = table(test_fold[, V], y_pred$.pred_class) # BERRIA
+    print(cm)
+    accuracy = (cm[1,1]+cm[2,2])/(cm[1,1]+cm[1,2]+
+                                    cm[2,1]+cm[2,2])
+    return(accuracy)  
+  
+  })
+  accuracy = mean(as.numeric(cv))
+  return(list(Score = accuracy))
+}
+
+limites <- list(
+  N= c(1L, 1000L),
+  M= c(1L, 98L)
+  # P= c(0L, 1L) TRUE edo FALSE kasurako
+)
+
+library("ParBayesianOptimization")
+library(doParallel)
+
+cl <- makeCluster(5)
+registerDoParallel(cl)
+clusterExport(cl,c('BBDD'))
+clusterEvalQ(cl,expr= {
+  c(library(e1071),
+    library(caret),
+    library(caTools),
+    library(randomForest))
+  })
+
+optObj3 <- bayesOpt(
+      FUN = scoring_function3
+      , bounds = limites
+      , initPoints = 5
+      , iters.n = 10
+      , iters.k = 1
+      , parallel = TRUE
+      , acq="ei"
+    )
+
+stopCluster(cl)
+registerDoSEQ()
+
+
+```
+
+
+```{r randoEmpa2}
+
+BBDD<- data.frame(df_empa)
+
+training_empa_fold = BBDD[-folds_com$Fold3, ]
+test_empa_fold = BBDD[folds_com$Fold3, ]
+
+
+rf_empa <-rand_forest(mode  = "classification",
+                  mtry  = 67,
+                  trees = 308)
+
+rf_empa<- rf_empa %>%
+  set_engine(
+    engine     = "ranger",
+    importance = "impurity",
+    seed       = 123
+          )
+
+rf_empa<- rf_empa %>% fit(FTR~.,data=training_empa_fold)
+
+y_pred_empa = predict(rf_empa, new_data = test_empa_fold[,-1])
+
+cm<- table(y_pred_empa$.pred_class, test_empa_fold$FTR)
+cm
+(cm[1,1]+cm[2,2])/(cm[1,1]+cm[1,2]+cm[2,1]+cm[2,2])
+
+# mtry=67, ntree=308 ==> 0.753
+# mtry=, ntree= ==> 
+# mtry=, ntree= ==> 
+
+# y_pred = predict(rf1, new_data = training_fold[,-1])
+# 
+# cm<- table(y_pred$.pred_class, training_fold$FTR)
+# (cm[1,1]+cm[2,2]+cm[3,3])/(cm[1,1]+cm[1,2]+cm[1,3]+cm[2,1]+cm[2,2]+cm[2,3]+cm[3,1]+cm[3,2]+cm[3,3])
+
+```
+
+
+#### Juntar predic
+
+```{r jutas}
+
+resul<- df1[folds_com$Fold3, ]
+tem_var<- df["Div"][folds_com$Fold3, ]
+
+aa<- data.frame(temp=tem_var$Div,
+                resul=resul$FTR,
+                pred_vic=y_pred_victo$.pred_class,
+                pred_empa=y_pred_empa$.pred_class,
+                pred_perd=y_pred_derr$.pred_class )
+
+aa<- aa %>% mutate(resul=as.character(resul),
+                   pred_vic=as.character(pred_vic),
+                   pred_empa=as.character(pred_empa),
+                   pred_perd=as.character(pred_perd))
+
+
+aa<- aa %>% mutate(aciert=ifelse(pred_vic=="H",
+                                 ifelse(pred_vic==resul,
+                                        "1",
+                                        "0"),
+                                 ifelse(pred_empa=="D",
+                                        ifelse(pred_empa==resul,
+                                               "1",
+                                               "0"),
+                                        ifelse(pred_perd=="A",
+                                               ifelse(pred_perd==resul,
+                                                      "1",
+                                                      "0"),
+                                               0
+                                               ))))
+
+
+```
+
+
+
+
+## Variables derivadas y seleccionadas
+
+### Derivadas, apuestas y tiempo
+
+```{r random21}
+
+
+BBDD<- data.frame(df_modi)
+
+
+scoring_function21 <- function(N, M, V=1, k=6) {
+  require(dplyr)
+  require(parsnip)
+  # P=ifelse(P==0,FALSE,TRUE)
+  folds = createFolds(BBDD[,V], k = k)
+  cv = lapply(folds, function(x) { 
+    training_fold = BBDD[-x, ]
+    test_fold = BBDD[x, ]
+    classifier = parsnip::rand_forest(mode  = "classification",
+                             mtry  = M,
+                             trees = N) # BERRIA
+    classifier <- classifier %>% fit(FTR~.,data=training_fold) # BERRIA
+    y_pred = predict(classifier, new_data = test_fold[,-V]) # BERRIA
+    
+    cm = table(test_fold[, V], y_pred$.pred_class) # BERRIA
+    print(cm)
+    accuracy = (cm[1,1]+cm[2,2]+cm[3,3])/(cm[1,1]+cm[1,2]+cm[1,3]+cm[2,1]+
+                                            cm[2,2]+cm[2,3]+cm[3,1]+cm[3,2]+cm[3,3])
+    return(accuracy)  
+  
+  })
+  accuracy = mean(as.numeric(cv))
+  return(list(Score = accuracy))
+}
+
+limites <- list(
+  N= c(1L, 1000L),
+  M= c(1L, 57L)
+  # P= c(0L, 1L) TRUE edo FALSE kasurako
+)
+
+library("ParBayesianOptimization")
+library(doParallel)
+
+cl <- makeCluster(5)
+registerDoParallel(cl)
+clusterExport(cl,c('BBDD'))
+clusterEvalQ(cl,expr= {
+  c(library(e1071),
+    library(caret),
+    library(caTools),
+    library(randomForest))
+  })
+
+optObj <- bayesOpt(
+      FUN = scoring_function21
+      , bounds = limites
+      , initPoints = 5
+      , iters.n = 10
+      , iters.k = 1
+      , parallel = TRUE
+      , acq="ei"
+    )
+
+stopCluster(cl)
+registerDoSEQ()
+
+
+
+
+```
+
+Entrenamos el modelo.
+
+```{r random22}
+
+BBDD<- data.frame(df_modi)
+
+folds = createFolds(BBDD[,1], k = 3)
+training_fold = BBDD[-folds$Fold3, ]
+test_fold = BBDD[folds$Fold3, ]
+
+
+rf1 <-rand_forest(mode  = "classification",
+                  mtry  = 1,
+                  trees = 185)
+
+rf1<- rf1 %>%
+          set_engine(
+            engine     = "ranger",
+            importance = "impurity",
+            seed       = 123
+          )
+
+rf1<- rf1 %>% fit(FTR~.,data=training_fold)
+
+y_pred = predict(rf1, new_data = test_fold[,-1])
+
+cm<- table(y_pred$.pred_class, test_fold$FTR)
+(cm[1,1]+cm[2,2]+cm[3,3])/(cm[1,1]+cm[1,2]+cm[1,3]+cm[2,1]+cm[2,2]+cm[2,3]+cm[3,1]+cm[3,2]+cm[3,3])
+
+# DISTINTAS PRUEBAS:
+# mtry=1, ntree=185 ==> 0.540781
+
+# y_pred = predict(rf1, new_data = training_fold[,-1])
+# 
+# cm<- table(y_pred$.pred_class, training_fold$FTR)
+# (cm[1,1]+cm[2,2]+cm[3,3])/(cm[1,1]+cm[1,2]+cm[1,3]+cm[2,1]+cm[2,2]+cm[2,3]+cm[3,1]+cm[3,2]+cm[3,3])
+
+```
+
+
+### Derivadas y origen
+
+```{r random31}
+
+BBDD<- data.frame(df_modi2)
+
+
+scoring_function31 <- function(N, M, V=1, k=6) {
+  require(dplyr)
+  require(parsnip)
+  # P=ifelse(P==0,FALSE,TRUE)
+  folds = createFolds(BBDD[,V], k = k)
+  cv = lapply(folds, function(x) { 
+    training_fold = BBDD[-x, ]
+    test_fold = BBDD[x, ]
+    classifier = parsnip::rand_forest(mode  = "classification",
+                             mtry  = M,
+                             trees = N) # BERRIA
+    classifier <- classifier %>% fit(FTR~.,data=training_fold) # BERRIA
+    y_pred = predict(classifier, new_data = test_fold[,-V]) # BERRIA
+    
+    cm = table(test_fold[, V], y_pred$.pred_class) # BERRIA
+    print(cm)
+    accuracy = (cm[1,1]+cm[2,2]+cm[3,3])/(cm[1,1]+cm[1,2]+cm[1,3]+cm[2,1]+
+                                            cm[2,2]+cm[2,3]+cm[3,1]+cm[3,2]+cm[3,3])
+    return(accuracy)  
+  
+  })
+  accuracy = mean(as.numeric(cv))
+  return(list(Score = accuracy))
+}
+
+limites <- list(
+  N= c(1L, 1000L),
+  M= c(1L, 103L)
+  # P= c(0L, 1L) TRUE edo FALSE kasurako
+)
+
+library("ParBayesianOptimization")
+library(doParallel)
+
+cl <- makeCluster(5)
+registerDoParallel(cl)
+clusterExport(cl,c('BBDD'))
+clusterEvalQ(cl,expr= {
+  c(library(e1071),
+    library(caret),
+    library(caTools),
+    library(randomForest))
+  })
+
+optObj <- bayesOpt(
+      FUN = scoring_function31
+      , bounds = limites
+      , initPoints = 5
+      , iters.n = 10
+      , iters.k = 1
+      , parallel = TRUE
+      , acq="ei"
+    )
+
+stopCluster(cl)
+registerDoSEQ()
+
+
+
+
+```
+
+Entrenamos el modelo.
+
+```{r random32}
+
+BBDD<- data.frame(df_modi2)
+
+folds = createFolds(BBDD[,1], k = 3)
+training_fold = BBDD[-folds$Fold3, ]
+test_fold = BBDD[folds$Fold3, ]
+
+
+rf1 <-rand_forest(mode  = "classification",
+                  mtry  = 103,
+                  trees = 561)
+
+rf1<- rf1 %>%
+          set_engine(
+            engine     = "ranger",
+            importance = "impurity",
+            seed       = 123
+          )
+
+rf1<- rf1 %>% fit(FTR~.,data=training_fold)
+
+y_pred = predict(rf1, new_data = test_fold[,-1])
+
+cm<- table(y_pred$.pred_class, test_fold$FTR)
+(cm[1,1]+cm[2,2]+cm[3,3])/(cm[1,1]+cm[1,2]+cm[1,3]+cm[2,1]+cm[2,2]+cm[2,3]+cm[3,1]+cm[3,2]+cm[3,3])
+
+# DISTINTAS PRUEBAS:
+# mtry=103, ntree=561 ==> 0.5192688
+
+# y_pred = predict(rf1, new_data = training_fold[,-1])
+# 
+# cm<- table(y_pred$.pred_class, training_fold$FTR)
+# (cm[1,1]+cm[2,2]+cm[3,3])/(cm[1,1]+cm[1,2]+cm[1,3]+cm[2,1]+cm[2,2]+cm[2,3]+cm[3,1]+cm[3,2]+cm[3,3])
+
+```
+
+### Apuestas
+
+```{r random41}
+
+
+BBDD<- data.frame(df_modi3)
+
+
+scoring_function41 <- function(N, M, V=1, k=6) {
+  require(dplyr)
+  require(parsnip)
+  # P=ifelse(P==0,FALSE,TRUE)
+  folds = createFolds(BBDD[,V], k = k)
+  cv = lapply(folds, function(x) { 
+    training_fold = BBDD[-x, ]
+    test_fold = BBDD[x, ]
+    classifier = parsnip::rand_forest(mode  = "classification",
+                             mtry  = M,
+                             trees = N) # BERRIA
+    classifier <- classifier %>% fit(FTR~.,data=training_fold) # BERRIA
+    y_pred = predict(classifier, new_data = test_fold[,-V]) # BERRIA
+    
+    cm = table(test_fold[, V], y_pred$.pred_class) # BERRIA
+    print(cm)
+    accuracy = (cm[1,1]+cm[2,2]+cm[3,3])/(cm[1,1]+cm[1,2]+cm[1,3]+cm[2,1]+
+                                            cm[2,2]+cm[2,3]+cm[3,1]+cm[3,2]+cm[3,3])
+    return(accuracy)  
+  
+  })
+  accuracy = mean(as.numeric(cv))
+  return(list(Score = accuracy))
+}
+
+limites <- list(
+  N= c(1L, 1000L),
+  M= c(1L, 18L)
+  # P= c(0L, 1L) TRUE edo FALSE kasurako
+)
+
+library("ParBayesianOptimization")
+library(doParallel)
+
+cl <- makeCluster(5)
+registerDoParallel(cl)
+clusterExport(cl,c('BBDD'))
+clusterEvalQ(cl,expr= {
+  c(library(e1071),
+    library(caret),
+    library(caTools),
+    library(randomForest))
+  })
+
+optObj <- bayesOpt(
+      FUN = scoring_function41
+      , bounds = limites
+      , initPoints = 5
+      , iters.n = 10
+      , iters.k = 1
+      , parallel = TRUE
+      , acq="ei"
+    )
+
+stopCluster(cl)
+registerDoSEQ()
+
+
+
+
+```
+
+Entrenamos el modelo.
+
+```{r random42}
+
+BBDD<- data.frame(df_modi3)
+
+folds = createFolds(BBDD[,1], k = 3)
+training_fold = BBDD[-folds$Fold3, ]
+test_fold = BBDD[folds$Fold3, ]
+
+
+rf1 <-rand_forest(mode  = "classification",
+                  mtry  = 1,
+                  trees = 445)
+
+rf1<- rf1 %>%
+          set_engine(
+            engine     = "ranger",
+            importance = "impurity",
+            seed       = 123
+          )
+
+rf1<- rf1 %>% fit(FTR~.,data=training_fold)
+
+y_pred = predict(rf1, new_data = test_fold[,-1])
+
+cm<- table(y_pred$.pred_class, test_fold$FTR)
+(cm[1,1]+cm[2,2]+cm[3,3])/(cm[1,1]+cm[1,2]+cm[1,3]+cm[2,1]+cm[2,2]+cm[2,3]+cm[3,1]+cm[3,2]+cm[3,3])
+
+# DISTINTAS PRUEBAS:
+# mtry=1, ntree=445 ==> 0.5412753
+
+# y_pred = predict(rf1, new_data = training_fold[,-1])
+# 
+# cm<- table(y_pred$.pred_class, training_fold$FTR)
+# (cm[1,1]+cm[2,2]+cm[3,3])/(cm[1,1]+cm[1,2]+cm[1,3]+cm[2,1]+cm[2,2]+cm[2,3]+cm[3,1]+cm[3,2]+cm[3,3])
+
+```
+
+
+### Derivadas, origen y apuestas
+
+```{r random51}
+
+
+BBDD<- data.frame(df_modi4)
+
+
+scoring_function51 <- function(N, M, V=1, k=6) {
+  require(dplyr)
+  require(parsnip)
+  # P=ifelse(P==0,FALSE,TRUE)
+  folds = createFolds(BBDD[,V], k = k)
+  cv = lapply(folds, function(x) { 
+    training_fold = BBDD[-x, ]
+    test_fold = BBDD[x, ]
+    classifier = parsnip::rand_forest(mode  = "classification",
+                             mtry  = M,
+                             trees = N) # BERRIA
+    classifier <- classifier %>% fit(FTR~.,data=training_fold) # BERRIA
+    y_pred = predict(classifier, new_data = test_fold[,-V]) # BERRIA
+    
+    cm = table(test_fold[, V], y_pred$.pred_class) # BERRIA
+    print(cm)
+    accuracy = (cm[1,1]+cm[2,2]+cm[3,3])/(cm[1,1]+cm[1,2]+cm[1,3]+cm[2,1]+
+                                            cm[2,2]+cm[2,3]+cm[3,1]+cm[3,2]+cm[3,3])
+    return(accuracy)  
+  
+  })
+  accuracy = mean(as.numeric(cv))
+  return(list(Score = accuracy))
+}
+
+limites <- list(
+  N= c(1L, 1000L),
+  M= c(1L, 118L)
+  # P= c(0L, 1L) TRUE edo FALSE kasurako
+)
+
+library("ParBayesianOptimization")
+library(doParallel)
+
+cl <- makeCluster(5)
+registerDoParallel(cl)
+clusterExport(cl,c('BBDD'))
+clusterEvalQ(cl,expr= {
+  c(library(e1071),
+    library(caret),
+    library(caTools),
+    library(randomForest))
+  })
+
+optObj <- bayesOpt(
+      FUN = scoring_function51
+      , bounds = limites
+      , initPoints = 5
+      , iters.n = 10
+      , iters.k = 1
+      , parallel = TRUE
+      , acq="ei"
+    )
+
+stopCluster(cl)
+registerDoSEQ()
+
+
+
+
+```
+
+Entrenamos el modelo.
+
+```{r random52}
+
+BBDD<- data.frame(df_modi)
+
+folds = createFolds(BBDD[,1], k = 3)
+training_fold = BBDD[-folds$Fold3, ]
+test_fold = BBDD[folds$Fold3, ]
+
+
+rf1 <-rand_forest(mode  = "classification",
+                  mtry  = 1,
+                  trees = 185)
+
+rf1<- rf1 %>%
+          set_engine(
+            engine     = "ranger",
+            importance = "impurity",
+            seed       = 123
+          )
+
+rf1<- rf1 %>% fit(FTR~.,data=training_fold)
+
+y_pred = predict(rf1, new_data = test_fold[,-1])
+
+cm<- table(y_pred$.pred_class, test_fold$FTR)
+(cm[1,1]+cm[2,2]+cm[3,3])/(cm[1,1]+cm[1,2]+cm[1,3]+cm[2,1]+cm[2,2]+cm[2,3]+cm[3,1]+cm[3,2]+cm[3,3])
+
+# DISTINTAS PRUEBAS:
+# mtry=1, ntree=185 ==> 0.540781
+
+# y_pred = predict(rf1, new_data = training_fold[,-1])
+# 
+# cm<- table(y_pred$.pred_class, training_fold$FTR)
+# (cm[1,1]+cm[2,2]+cm[3,3])/(cm[1,1]+cm[1,2]+cm[1,3]+cm[2,1]+cm[2,2]+cm[2,3]+cm[3,1]+cm[3,2]+cm[3,3])
+
+```
+
+
+**************
+**************
+
+
+# XGBoost
+
+En este apartado vamos a crear el algoritmo XGBoost. Para intentar optimizar el modelo utilizaremos la optimización bayesiana.
+
+```{r xgboost1}
+
+# El objetivo multi: softprob le dice al algoritmo que calcule probabilidades para cada resultado posible (en este caso, una probabilidad para cada una de las tres especies de flores), para cada observación. 
+
+df_exa<- df %>% select(-relati_tem_local, -relati_sol_local, -relati_tem_visit, -relati_sol_visit)
+
+df_exa<- data.frame(df_exa)
+
+# df_exa_tra<- df_exa %>% select(-FTR)
+label = as.integer(df_exa$FTR)-1
+
+cv_folds <- createFolds(df_exa$FTR, k = 5)
+xgb.cv.bayes <- function(max.depth, min_child_weight, subsample, colsample_bytree, gamma, eta_range){
+  cv <- xgb.cv(params = list(booster = 'gbtree',
+                             eta = eta_range,
+                             max_depth = max.depth,
+                             min_child_weight = min_child_weight,
+                             subsample = subsample,
+                             colsample_bytree = colsample_bytree,
+                             gamma = gamma,
+                             lambda = 1, alpha = 0,
+                             objective = 'multi:softprob',
+                             eval_metric = 'auc',
+                             num_class=3 #, sampling_method="gradient_based"
+                             ),
+                 data = data.matrix(df_exa[,-1]),
+                 label = label,
+                 nround = 120000, folds = cv_folds, prediction = TRUE,
+                 showsd = TRUE, early_stopping_rounds = 5, maximize = TRUE,
+                 verbose = 0
+  )
+  list(Score = cv$evaluation_log[, max(test_auc_mean)],
+       Pred = cv$pred)
+}
+
+
+
+xgb.bayes.model <- BayesianOptimization(
+  xgb.cv.bayes,
+  bounds = list(max.depth = c(2L, 3000L),
+                min_child_weight = c(1L, 1800L),
+                subsample = c(0.1, 1),
+                colsample_bytree = c(0.1, 0.9),
+                gamma = c(0L, 800L),
+                eta_range =c(0.0001,0.2)
+  ),
+  init_grid_dt = NULL,
+  init_points = 35,  # number of random points to start search
+  n_iter = 40, # number of iterations after initial random points are set
+  acq = 'ucb', kappa = 2.576, eps = 0.01, verbose = TRUE
+)
+
+xgb.bayes.model$Best_Par
+
+```
+
+Creamos el modelo con el que hemos conseguido el mejor accuracy.
+
+```{r xgboost2}
+
+
+#### INPUTS
+
+df_exa_tra<- df_exa %>% select(-FTR)
+label = as.integer(df_exa$FTR)-1
+
+A_max_depth<- xgb.bayes.model$Best_Par["max.depth"]
+A_min_child_weight<- xgb.bayes.model$Best_Par["min_child_weight"]
+A_subsample<- xgb.bayes.model$Best_Par["subsample"]
+A_colsample_bytree<- xgb.bayes.model$Best_Par["colsample_bytree"]
+A_gamma<- xgb.bayes.model$Best_Par["gamma"]
+A_eta<- xgb.bayes.model$Best_Par["eta_range"]
+
+#### INPUTS DERIVADOS
+
+n = nrow(df_exa_tra)
+train.index = sample(n,floor(0.75*n))
+train.data = as.matrix(df_exa_tra[train.index,])
+train.label = label[train.index]
+test.data = as.matrix(df_exa_tra[-train.index,])
+test.label = label[-train.index]
+
+
+xgb.train = xgb.DMatrix(data=train.data,label=train.label)
+xgb.test = xgb.DMatrix(data=test.data,label=test.label)
+
+#### PARAMETROS
+
+params = list(
+  booster="gbtree",
+  eta=A_eta,
+  max_depth=A_max_depth,
+  min_child_weight = A_min_child_weight,
+  gamma=A_gamma,
+  subsample=A_subsample,
+  colsample_bytree=A_colsample_bytree,
+  objective="multi:softprob",
+  eval_metric="mlogloss",
+  num_class=3#, sampling_method="gradient_based"
+)
+
+#### ENTRENAMIENTO
+
+xgb.fit=xgb.train(
+  params=params,
+  data=xgb.train,
+  nrounds=50,
+  nthreads=1,
+  early_stopping_rounds=5,
+  watchlist=list(val1=xgb.train,val2=xgb.test),
+  verbose=0
+)
+
+# Review the final model and results
+xgb.fit
+
+#### TESTEO
+
+# Predict outcomes with the test data
+xgb.pred = predict(xgb.fit,test.data,reshape=T)
+xgb.pred = as.data.frame(xgb.pred)
+colnames(xgb.pred) = levels(df_exa$FTR)
+
+# Use the predicted label with the highest probability
+xgb.pred$prediction = apply(xgb.pred,1,function(x) colnames(xgb.pred)[which.max(x)])
+xgb.pred$label = levels(df_exa$FTR)[test.label+1]
+
+
+# Calculate the final accuracy
+result = sum(xgb.pred$prediction==xgb.pred$label)/nrow(xgb.pred)
+print(paste("Final Accuracy =",sprintf("%1.2f%%", 100*result)))
+
+```
+
+**************
+**************
+
+# Convolucional
+
+En este apartado solamente crearemos las imagenes que utilizaremos luego a la hora de crear el modelo convolucional
+
+Cargamos los datos.
+
+```{r}
+
+
+load("~/OLAST/MASTERRA/CIENCIA DE DATOS/TFM/RDATA/20211210_df_convolu.Rdata") # Rmd: 20211208_juntar_datos_convo.Rmd
+
+```
+
+
+```{r imagen}
+
+df_convolu<- df_convolu %>% 
+  mutate(regis=paste(gsub("/","_",Div), gsub(" ","_",HomeTeam), gsub(" ","_",AwayTeam), sep = "_"))
+
+df_convolu<- df_convolu %>% select(-Div, -HomeTeam, -AwayTeam, -jornada_casa, -jornada_fuer, -dias_prev, -Date)
+
+df_imag<- data.frame(df_convolu)
+
+lista_pe<- df_imag %>% filter(resultado=="PE")
+lista_ga<- df_imag %>% filter(resultado=="GA")
+lista_em<- df_imag %>% filter(resultado=="EM")
+
+lista_pe<- unique(lista_pe$regis)
+lista_ga<- unique(lista_ga$regis)
+lista_em<- unique(lista_em$regis)
+
+setwd("~/OLAST/MASTERRA/CIENCIA DE DATOS/TFM/DOC/irudia/PERDER")
+for(i in lista_pe){
+  df_a<- df_imag %>% filter(regis==i) %>% select(-resultado, -regis)
+  df_b<- cor(df_a)
+  png(file=paste0('Cor_',i,".png"))
+  heatmap(df_b,Rowv = NA, Colv = NA,scale='none',margins = c(0,0),labRow = NA,labCol = NA)
+  dev.off()
+}
+
+setwd("~/OLAST/MASTERRA/CIENCIA DE DATOS/TFM/DOC/irudia/GANAR")
+for(i in lista_ga){
+  df_a<- df_imag %>% filter(regis==i) %>% select(-resultado, -regis)
+  df_b<- cor(df_a)
+  png(file=paste0('Cor_',i,".png"))
+  heatmap(df_b,Rowv = NA, Colv = NA,scale='none',margins = c(0,0),labRow = NA,labCol = NA)
+  dev.off()
+}
+
+setwd("~/OLAST/MASTERRA/CIENCIA DE DATOS/TFM/DOC/irudia/EMPATAR")
+for(i in lista_em){
+  df_a<- df_imag %>% filter(regis==i) %>% select(-resultado, -regis)
+  df_b<- cor(df_a)
+  png(file=paste0('Cor_',i,".png"))
+  heatmap(df_b,Rowv = NA, Colv = NA,scale='none',margins = c(0,0),labRow = NA,labCol = NA)
+  dev.off()
+  }
+
+
+
+```
+
+
+```{r}
+
+#### CARGAR IMAGENES
+
+# image_dir_A="~/OLAST/MASTERRA/CIENCIA DE DATOS/TFM/DOC/irudia"
+# images_names <- list.files(image_dir_A)
+# 
+# library("EBImage")
+# library(pbapply)
+# library(keras)
+# library(caTools)
+# library(tensorflow)
+# 
+# 
+# df_imag <- pblapply(images_names, function(imgname) {
+#   ## Read image
+#   img <- readImage(file.path(image_dir_A, imgname))
+#   ## Resize image
+#   img_resized <- resize(img, w = 480, h = 480)
+#   ## Set to grayscale
+#   # print("3aa")
+#   grayimg <- channel(img_resized, "rgb")
+#   ## Get the image as a matrix
+#   img_matrix <- grayimg@.Data
+#   return(img_matrix)
+# })
+
+
+
+```
+
+
+# Red neuronal
+
+Crearemos un red neuronal.
+
+
+```{r}
+
+library(h2o)
+
+h2o.init(
+  ip = "localhost",
+  # -1 indica que se empleen todos los cores disponibles.
+  nthreads = -1,
+  # Máxima memoria disponible para el cluster.
+  max_mem_size = "4g"
+)
+
+##########################
+# Se eliminan los datos del cluster por si ya había sido iniciado.
+h2o.removeAll()
+# Para que no se muestre la barra de progreso.
+h2o.no_progress()
+##########################
+
+datos_training_h2o <- as.h2o(training_fold)
+datos_test_h2o <- as.h2o(test_fold)
+
+h2o.dim(datos_training_h2o)
+
+View(h2o.describe(datos_training_h2o))
+
+tabla_muestra <- as.data.frame(h2o.table(datos_training_h2o$FTR))
+tabla_muestra
+
+modelo_dl_10 <- h2o.deeplearning(
+  y = c("FTR"),
+  loss = "CrossEntropy",
+  distribution = "multinomial",
+  training_frame = datos_training_h2o,
+  standardize = TRUE,
+  activation = "Rectifier",
+  hidden = c(600, 250, 50), # c(100,50,10)
+  stopping_rounds = 0,
+  epochs = 150,
+  seed = 123,
+  model_id = "modelo_dl_10"
+)
+
+# AUC de test
+aa<- h2o.performance(model = modelo_dl_10, newdata = datos_test_h2o)
+
+cm<- aa@metrics$cm$table
+cm
+(cm[1,1]+cm[2,2]+cm[3,3])/(cm[1,1]+cm[1,2]+cm[1,3]+cm[2,1]+cm[2,2]+cm[2,3]+cm[3,1]+cm[3,2]+cm[3,3])
+# @metrics$AUC
+
+# Se muestran los modelos ordenados de mayor a menor AUC.
+resultados_grid <- h2o.getGrid(
+                     grid_id = "grid_dl",
+                     sort_by = "auc",
+                     decreasing = TRUE
+                   )
+
+data.frame(resultados_grid@summary_table) %>% select(-model_ids)
+
+
+############################################################################
+
+# Hiperparámetros que se quieren comparar.
+hiperparametros <- list(hidden = list(c(64), c(75), c(128), c(256), c(512), c(1024),
+                                      c(64,64), c(128,128), c(256,256),
+                                      c(512, 512)))
+
+datos_training_h2o <- as.h2o(training_fold)
+datos_test_h2o <- as.h2o(test_fold)
+
+grid_dl <- h2o.grid(
+              # Algoritmo
+              algorithm = "deeplearning",
+              activation = "RectifierWithDropout",
+              epochs = 500,
+              # Variable respuesta y predictores
+              y = "FTR",
+              # Datos de entrenamiento.
+              training_frame = datos_training_h2o,
+              shuffle_training_data = FALSE,
+              # Datos de validación
+              validation_frame = datos_test_h2o,
+              # Preprocesado
+              standardize = TRUE,
+              missing_values_handling = "Skip",
+              # Detención temprana
+              stopping_rounds = 3,
+              stopping_metric = "AUC",
+              stopping_tolerance = 0.01,
+              # Hiperparámetros optimizados
+              hyper_params = hiperparametros,
+              # Regularización
+              l1 = 1e-5,
+              l2 = 1e-5,
+              # Tipo de búsqueda
+              seed = 123,
+              grid_id = "grid_dl"
+          )
+
+# Se muestran los modelos ordenados de mayor a menor AUC.
+resultados_grid <- h2o.getGrid(
+                     grid_id = "grid_dl",
+                     sort_by = "auc",
+                     decreasing = TRUE
+                   )
+
+data.frame(resultados_grid@summary_table) %>% select(-model_ids)
+
+
+```
+
+
+**************
+**************
+

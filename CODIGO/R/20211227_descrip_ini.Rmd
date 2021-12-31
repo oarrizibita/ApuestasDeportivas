@@ -1,0 +1,559 @@
+---
+title: "20211227_descrip_ini"
+author: "Olast Arrizibita Iriarte"
+date: " 15 de diciembre de 2021"
+output: 
+  html_document:
+    highlight: haddock
+    number_sections: yes
+    theme: cosmo
+    toc: yes
+    toc_float: true
+    toc_depth: 2
+    code_folding: show
+  word_document: monochrome
+  pdf_document:
+    highlight: zenburn
+    toc: yes
+---
+
+
+<style>
+body {
+text-align: justify}
+</style>
+
+**************
+**************
+
+El objetivo de este archivo sera hacer un análisis descriptivo de las distintas temporadas que tenemos. Comenzaremos con la temporada 2004/2005 para primera y segunda división y acabaremos con la temporada 2020/2021.
+
+```{r CaRGaR LIBRERIAS, include=FALSE}
+
+library(Hmisc)
+library(zoo)
+library(ggplot2)
+library(lubridate)
+library(tidyr)
+# library(tidyverse)
+library(readxl)
+library(xlsx)
+library(readr)
+library(kableExtra)
+library(rmarkdown)
+library(dplyr)
+# library(jmv)
+
+
+```
+
+
+
+```{r Cargar datos 1, message=FALSE, include=FALSE}
+
+setwd("~/OLAST/MASTERRA/CIENCIA DE DATOS/TFM/datu baseak")
+df04_A <- read_excel("2004_2005_A.xlsx")
+df05 <- read_excel("2005_2006.xlsx")
+df06 <- read_excel("2006_2007.xlsx")
+df07 <- read_excel("2007_2008.xlsx") # Tenemos alguna variables que pierde parte de su información
+df08 <- read_excel("2008_2009.xlsx")
+df09 <- read_excel("2009_2010.xlsx")
+df10 <- read_excel("2010_2011.xlsx")
+df11 <- read_excel("2011_2012.xlsx")
+df12 <- read_excel("2012_2013.xlsx")
+df13 <- read_excel("2013_2014.xlsx")
+df14 <- read_excel("2014_2015.xlsx")
+df15 <- read_excel("2015_2016.xlsx")
+df16 <- read_excel("2016_2017.xlsx")
+df17 <- read_excel("2017_2018.xlsx")
+df18 <- read_excel("2018_2019.xlsx")
+df19 <- read_excel("2019_2020.xlsx")
+df20 <- read_excel("2020_2021.xlsx")
+
+common_col_names <- Reduce(intersect, list(names(df05), names(df06), names(df07), names(df08), names(df09),
+                                           names(df10), names(df11), names(df12), names(df13), names(df14),
+                                           names(df15), names(df16), names(df17), names(df18), names(df19),
+                                           names(df20))) # 37
+
+
+############## SEGUNDA
+
+setwd("~/OLAST/MASTERRA/CIENCIA DE DATOS/TFM/datu baseak/segunda")
+df04_2_A <- read_excel("2_2004_2005_A.xlsx")[,-1] %>% filter(!is.na(HomeTeam))
+df05_2 <- read_excel("2_2005_2006.xlsx")[,-1] %>% filter(!is.na(HomeTeam))
+df06_2 <- read_excel("2_2006_2007.xlsx")[,-1] %>% filter(!is.na(HomeTeam))
+df07_2 <- read_excel("2_2007_2008.xlsx")[,-1] %>% filter(!is.na(HomeTeam))
+df08_2 <- read_excel("2_2008_2009.xlsx")[,-1] %>% filter(!is.na(HomeTeam))
+df09_2 <- read_excel("2_2009_2010.xlsx")[,-1] %>% filter(!is.na(HomeTeam))
+df10_2 <- read_excel("2_2010_2011.xlsx")[,-1] %>% filter(!is.na(HomeTeam))
+df11_2 <- read_excel("2_2011_2012.xlsx")[,-1] %>% filter(!is.na(HomeTeam))
+df12_2 <- read_excel("2_2012_2013.xlsx")[,-1] %>% filter(!is.na(HomeTeam))
+df13_2 <- read_excel("2_2013_2014.xlsx")[,-1] %>% filter(!is.na(HomeTeam))
+df14_2 <- read_excel("2_2014_2015.xlsx")[,-1] %>% filter(!is.na(HomeTeam))
+df15_2 <- read_excel("2_2015_2016.xlsx")[,-1] %>% filter(!is.na(HomeTeam))
+df16_2 <- read_excel("2_2016_2017.xlsx")[,-1] %>% filter(!is.na(HomeTeam))
+df17_2 <- read_excel("2_2017_2018.xlsx")[,-1] %>% filter(!is.na(HomeTeam))
+df18_2 <- read_excel("2_2018_2019.xlsx")[,-1] %>% filter(!is.na(HomeTeam))
+df19_2 <- read_excel("2_2019_2020.xlsx")[,-1] %>% filter(!is.na(HomeTeam))
+df20_2 <- read_excel("2_2020_2021.xlsx")[,-1] %>% filter(!is.na(HomeTeam))
+
+
+```
+
+
+```{r seleccionar, include=FALSE}
+
+df05<- df05[common_col_names]
+df06<- df06[common_col_names]
+df07<- df07[common_col_names]
+df08<- df08[common_col_names]
+df09<- df09[common_col_names]
+df10<- df10[common_col_names]
+df11<- df11[common_col_names]
+df12<- df12[common_col_names]
+df13<- df13[common_col_names]
+df14<- df14[common_col_names]
+df15<- df15[common_col_names]
+df16<- df16[common_col_names]
+df17<- df17[common_col_names]
+df18<- df18[common_col_names]
+df19<- df19[common_col_names]
+df20<- df20[common_col_names]
+
+```
+
+
+```{r date, include=FALSE}
+
+df04_A<- df04_A %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+df05<- df05 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+df06<- df06 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+df07<- df07 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+df08<- df08 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+
+df10<- df10 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+df11<- df11 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+df12<- df12 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+df13<- df13 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+df14<- df14 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+df15<- df15 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+df16<- df16 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+df17<- df17 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+df18<- df18 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%Y")) %>% mutate(Date=as.character(Date))
+df19<- df19 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%Y")) %>% mutate(Date=as.character(Date))
+df20<- df20 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%Y")) %>% mutate(Date=as.character(Date))
+
+
+######### SEGUNDA
+
+
+df04_2_A<- df04_2_A %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+df05_2<- df05_2 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+df06_2<- df06_2 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+df07_2<- df07_2 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+df08_2<- df08_2 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+df09_2<- df09_2 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+df10_2<- df10_2 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+df11_2<- df11_2 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+df12_2<- df12_2 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+df13_2<- df13_2 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+df14_2<- df14_2 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+df15_2<- df15_2 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+df16_2<- df16_2 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+df17_2<- df17_2 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%y")) %>% mutate(Date=as.character(Date))
+df18_2<- df18_2 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%Y")) %>% mutate(Date=as.character(Date))
+df19_2<- df19_2 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%Y")) %>% mutate(Date=as.character(Date))
+df20_2<- df20_2 %>% mutate(Date=as.Date(as.character(Date), format = "%d/%m/%Y")) %>% mutate(Date=as.character(Date))
+
+
+```
+
+
+**************
+**************
+
+# Temporada 2004/2005
+
+## Primera división
+
+```{r 2004_1}
+
+describe(df04_A)
+
+```
+
+
+## Segunda división
+
+```{r 2004_2}
+
+describe(df04_2_A)
+
+```
+
+**************
+**************
+
+# Temporada 2005/2006
+
+## Primera división
+
+```{r 2005_1}
+
+describe(df05)
+
+```
+
+
+## Segunda división
+
+```{r 2005_2}
+
+describe(df05_2)
+
+```
+
+
+**************
+**************
+
+# Temporada 2006/2007
+
+## Primera división
+
+```{r 2006_1}
+
+describe(df06)
+
+```
+
+
+## Segunda división
+
+```{r 2006_2}
+
+describe(df06_2)
+
+```
+
+
+**************
+**************
+
+# Temporada 2007/2008
+
+## Primera división
+
+```{r 2007_1}
+
+describe(df07)
+
+```
+
+
+## Segunda división
+
+```{r 2007_2}
+
+describe(df07_2)
+
+```
+
+
+**************
+**************
+
+# Temporada 2008/2009
+
+## Primera división
+
+```{r 2008_1}
+
+describe(df08)
+
+```
+
+
+## Segunda división
+
+```{r 2008_2}
+
+describe(df08_2)
+
+```
+
+
+**************
+**************
+
+# Temporada 2009/2010
+
+## Primera división
+
+```{r 2009_1}
+
+describe(df09)
+
+```
+
+
+## Segunda división
+
+```{r 2009_2}
+
+describe(df09_2)
+
+```
+
+
+**************
+**************
+
+# Temporada 2010/2011
+
+## Primera división
+
+```{r 2010_1}
+
+describe(df10)
+
+```
+
+
+## Segunda división
+
+```{r 2010_2}
+
+describe(df10_2)
+
+```
+
+
+**************
+**************
+
+# Temporada 2011/2012
+
+## Primera división
+
+```{r 2011_1}
+
+describe(df11)
+
+```
+
+
+## Segunda división
+
+```{r 2011_2}
+
+describe(df11_2)
+
+```
+
+
+**************
+**************
+
+# Temporada 2012/2013
+
+## Primera división
+
+```{r 2012_1}
+
+describe(df12)
+
+```
+
+
+## Segunda división
+
+```{r 2012_2}
+
+describe(df12_2)
+
+```
+
+
+**************
+**************
+
+# Temporada 2013/2014
+
+## Primera división
+
+```{r 2013_1}
+
+describe(df13)
+
+```
+
+
+## Segunda división
+
+```{r 2013_2}
+
+describe(df13_2)
+
+```
+
+
+**************
+**************
+
+# Temporada 2014/2015
+
+## Primera división
+
+```{r 2014_1}
+
+describe(df14)
+
+```
+
+
+## Segunda división
+
+```{r 2014_2}
+
+describe(df14_2)
+
+```
+
+
+**************
+**************
+
+# Temporada 2015/2016
+
+## Primera división
+
+```{r 2015_1}
+
+describe(df15)
+
+```
+
+
+## Segunda división
+
+```{r 2015_2}
+
+describe(df15_2)
+
+```
+
+
+**************
+**************
+
+# Temporada 2016/2017
+
+## Primera división
+
+```{r 2016_1}
+
+describe(df16)
+
+```
+
+
+## Segunda división
+
+```{r 2016_2}
+
+describe(df16_2)
+
+```
+
+
+**************
+**************
+
+# Temporada 2017/2018
+
+## Primera división
+
+```{r 2017_1}
+
+describe(df17)
+
+```
+
+
+## Segunda división
+
+```{r 2017_2}
+
+describe(df17_2)
+
+```
+
+
+**************
+**************
+
+# Temporada 2018/2019
+
+## Primera división
+
+```{r 2018_1}
+
+describe(df18)
+
+```
+
+
+## Segunda división
+
+```{r 2018_2}
+
+describe(df18_2)
+
+```
+
+
+**************
+**************
+
+# Temporada 2019/2020
+
+## Primera división
+
+```{r 2019_1}
+
+describe(df19)
+
+```
+
+
+## Segunda división
+
+```{r 2019_2}
+
+describe(df19_2)
+
+```
+
+
+**************
+**************
+
+# Temporada 2020/2021
+
+## Primera división
+
+```{r 2020_1}
+
+describe(df20)
+
+```
+
+
+## Segunda división
+
+```{r 2020_2}
+
+describe(df20_2)
+
+```

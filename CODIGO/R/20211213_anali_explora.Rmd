@@ -1,0 +1,1380 @@
+---
+title: "Analisis exploratorio de datos"
+author: "Olast Arrizibita Iriarte"
+date: "2021(e)ko abenduak 13"
+output:
+  word_document: default
+  html_document:
+    df_print: paged
+---
+
+<style>
+body {
+text-align: justify}
+</style>
+
+**************
+**************
+
+El objetivo de este trabajo sera el de hacer un analisis exploratorio de los datos (EDA).
+
+```{r CaRGaR LIBRERIAS, include=FALSE}
+
+library(Hmisc)
+library(zoo)
+library(ggplot2)
+library(plotly)
+library(cowplot)
+library(lubridate)
+library(tidyr)
+# library(tidyverse)
+library(scales)
+library(readr)
+library(kableExtra)
+library(rmarkdown)
+library(dplyr)
+# library(jmv)
+
+
+```
+
+
+Para reescalar las variables utilizaremos esta formula.
+
+\begin{equation}
+
+x_{estan} = \dfrac{x-min\left(x\right)}{max\left(x\right)-min\left(x\right)}
+
+\end{equation}
+
+Y despues de esto categorizaremos las variables en cuantro categorias:
+
++ bajo: Los valores que esten contenidos por debajo del primer cuantil.
++ medio_bajo: Los valores que esten contenidos entre el primer cuantil y el segundo.
++ medio_alto: Los valores que esten contenidos entre el segundo cuantil y el tercer cuantil.
++ alto: los valores que esten por encima del tercer cuantil.
+
+
+```{r function}
+
+# categorizar<- function(x){
+#   
+#   x<- rescale(x)
+#   
+#   x<- ifelse(x<=mean(x)/2,"bajo",
+#              ifelse(x<=mean(x),"medio_bajo",
+#                     ifelse(x<=1.5*mean(x),"medio_alto",
+#                            ifelse(x<=max(x),"alto", NA))))
+#   return(x)
+# }
+
+categorizar<- function(x){
+  
+  x<- rescale(x)
+  
+  x<- ifelse(x<=quantile(x)[2][[1]],"bajo",
+             ifelse(x<=quantile(x)[3][[1]],"medio_bajo",
+                    ifelse(x<=quantile(x)[4][[1]],"medio_alto",
+                           ifelse(x<=max(x),"alto", NA))))
+  
+  x<- factor(x, levels= c("bajo", "medio_bajo", "medio_alto", "alto"))
+  
+  return(x)
+}
+
+```
+
+
+Cargamos los datos.
+
+```{r Cargar datos 1, message=FALSE, include=FALSE}
+
+load("~/OLAST/MASTERRA/CIENCIA DE DATOS/TFM/RDATA/20211109_BaseDatos_final.Rdata")
+
+```
+
+**************
+**************
+
+# Victorias
+
+Lo primero que haremos sera ver la cantidad de victorias que tenemos globalmente.
+
+```{r victo globa, echo=FALSE, warning=FALSE, fig.height=6, fig.width=12}
+
+df<- df %>% mutate(FTR= ifelse(FTR=="H", "H victoria local", ifelse(FTR=="D", "D empate", ifelse(FTR=="A", "A derrota local", NA))))
+
+df_vic<- df %>% group_by(FTR) %>% summarise(n=n()) %>% mutate(lab=paste(round(n*100/sum(n),2),"%",sep = " "))
+
+df_vic_tem<- df %>% group_by(FTR, Div) %>% summarise(n=n())
+
+
+plot1 <- ggplot(df_vic, aes(x="", y=n, fill=FTR))+
+  geom_bar(width = 1, stat = "identity") +
+  coord_polar("y", start=0) +
+  geom_text(aes(label = lab),
+            position = position_stack(vjust = 0.5))+
+  theme_void() +
+  theme(legend.position = 'top')
+
+plot2 <- ggplot(data=df_vic_tem, aes(x=Div, y=n, fill=FTR)) +
+  geom_bar(stat="identity") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="top")
+
+plot_grid(plot1, plot2, labels = "AUTO")
+
+
+
+```
+
+Podemos observar que tenemos una mayoria de victorias locales y que cada año mas o menos se mantiene esta proporción.
+
+**************
+**************
+
+# B365
+
++ B365H: Cuotas de victoria en casa de Bet365
++ B365D: Cuotas de empate de Bet365
++ B365A: Cuotas de victoria fuera de Bet365
+
+```{r B365, echo=FALSE, fig.height=6, fig.width=12}
+
+
+df_B36<- df %>% select(FTR, B365H) %>% mutate(B365H= categorizar(B365H)) %>%
+  ungroup() %>%
+  group_by(FTR, B365H) %>% mutate(n=n()) %>% distinct()
+
+plot1 <- ggplot(data=df_B36, aes(x=B365H, y=n, fill=FTR)) +
+  geom_bar(stat="identity") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+df_B36<- df %>% select(FTR, B365D) %>% mutate(B365D= categorizar(B365D)) %>% ungroup() %>%
+  group_by(FTR, B365D) %>% mutate(n=n()) %>% distinct()
+
+plot2 <- ggplot(data=df_B36, aes(x=B365D, y=n, fill=FTR)) +
+  geom_bar(stat="identity") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="top",legend.title=element_blank())
+
+
+df_B36<- df %>% select(FTR, B365A) %>% mutate(B365A= categorizar(B365A)) %>%
+  ungroup() %>%
+  group_by(FTR, B365A) %>% mutate(n=n()) %>% distinct()
+
+plot3 <- ggplot(data=df_B36, aes(x=B365A, y=n, fill=FTR)) +
+  geom_bar(stat="identity") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+plot_grid(plot1, plot2, plot3,
+          labels = c("","",""),
+          ncol = 3,
+          nrow = 1)
+
+rm(df_B36)
+
+```
+
+
+# BW
+
++ BWH: Probabilidades de ganar en casa de Bet & Win
++ BWD: cuotas de empate de Bet & Win
++ BWA: Apostar y ganar probabilidades de ganar fuera de casa
+
+```{r BW, echo=FALSE, fig.height=6, fig.width=12}
+
+
+
+df_plo<- df %>% select(FTR, BWH) %>% mutate(BWH= categorizar(BWH)) %>%
+  ungroup() %>%
+  group_by(FTR, BWH) %>% mutate(n=n()) %>% distinct()
+
+plot1 <- ggplot(data=df_plo, aes(x=BWH, y=n, fill=FTR)) +
+  geom_bar(stat="identity") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+df_plo<- df %>% select(FTR, BWD) %>% mutate(BWD= categorizar(BWD)) %>% ungroup() %>%
+  group_by(FTR, BWD) %>% mutate(n=n()) %>% distinct()
+
+plot2 <- ggplot(data=df_plo, aes(x=BWD, y=n, fill=FTR)) +
+  geom_bar(stat="identity") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="top",legend.title=element_blank())
+
+
+df_plo<- df %>% select(FTR, BWA) %>% mutate(BWA= categorizar(BWA)) %>%
+  ungroup() %>%
+  group_by(FTR, BWA) %>% mutate(n=n()) %>% distinct()
+
+plot3 <- ggplot(data=df_plo, aes(x=BWA, y=n, fill=FTR)) +
+  geom_bar(stat="identity") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+plot_grid(plot1, plot2, plot3,
+          labels = c("","",""),
+          ncol = 3,
+          nrow = 1)
+
+rm(df_plo)
+
+```
+
+
+# IW
+
++ IWH: Cuotas de victoria en casa de Interwetten
++ IWD: Cuotas de empate de Interwetten
++ IWA: Cuotas de victoria visitante de Interwetten
+
+```{r IW, echo=FALSE, fig.height=6, fig.width=12}
+
+
+df_plo<- df %>% select(FTR, IWH) %>% mutate(IWH= categorizar(IWH)) %>%
+  ungroup() %>%
+  group_by(FTR, IWH) %>% mutate(n=n()) %>% distinct()
+
+plot1 <- ggplot(data=df_plo, aes(x=IWH, y=n, fill=FTR)) +
+  geom_bar(stat="identity") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+df_plo<- df %>% select(FTR, IWD) %>% mutate(IWD= categorizar(IWD)) %>% ungroup() %>%
+  group_by(FTR, IWD) %>% mutate(n=n()) %>% distinct()
+
+plot2 <- ggplot(data=df_plo, aes(x=IWD, y=n, fill=FTR)) +
+  geom_bar(stat="identity") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="top",legend.title=element_blank())
+
+
+df_plo<- df %>% select(FTR, IWA) %>% mutate(IWA= categorizar(IWA)) %>%
+  ungroup() %>%
+  group_by(FTR, IWA) %>% mutate(n=n()) %>% distinct()
+
+plot3 <- ggplot(data=df_plo, aes(x=IWA, y=n, fill=FTR)) +
+  geom_bar(stat="identity") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+plot_grid(plot1, plot2, plot3,
+          labels = c("","",""),
+          ncol = 3,
+          nrow = 1)
+
+rm(df_plo)
+
+```
+
+
+# VC
+
++ VCH = Cuotas de victoria local de VC Bet
++ VCD = Cuotas de empate de VC Bet
++ VCA = Apuesta de VC Bet para ganar fuera de casa
+
+```{r VC, echo=FALSE, fig.height=6, fig.width=12}
+
+
+df_plo<- df %>% select(FTR, VCH) %>% mutate(VCH= categorizar(VCH)) %>%
+  ungroup() %>%
+  group_by(FTR, VCH) %>% mutate(n=n()) %>% distinct()
+
+plot1 <- ggplot(data=df_plo, aes(x=VCH, y=n, fill=FTR)) +
+  geom_bar(stat="identity") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+df_plo<- df %>% select(FTR, VCD) %>% mutate(VCD= categorizar(VCD)) %>% ungroup() %>%
+  group_by(FTR, VCD) %>% mutate(n=n()) %>% distinct()
+
+plot2 <- ggplot(data=df_plo, aes(x=VCD, y=n, fill=FTR)) +
+  geom_bar(stat="identity") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="top",legend.title=element_blank())
+
+
+df_plo<- df %>% select(FTR, VCA) %>% mutate(VCA= categorizar(VCA)) %>%
+  ungroup() %>%
+  group_by(FTR, VCA) %>% mutate(n=n()) %>% distinct()
+
+plot3 <- ggplot(data=df_plo, aes(x=VCA, y=n, fill=FTR)) +
+  geom_bar(stat="identity") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+plot_grid(plot1, plot2, plot3,
+          labels = c("","",""),
+          ncol = 3,
+          nrow = 1)
+
+rm(df_plo)
+
+```
+
+**************
+**************
+
+# Puntos y clasificacion
+
+Puntos local - Puntos visitante
+
+```{r PUNTOS, echo=FALSE, fig.height=6, fig.width=9}
+
+df_gan<- df %>% select(FTR,puntos_local, puntos_visit) %>%
+  mutate(punt_dif=puntos_local-puntos_visit) %>% filter(FTR=="H victoria local")
+df_emp<- df %>% select(FTR,puntos_local, puntos_visit) %>%
+  mutate(punt_dif=puntos_local-puntos_visit) %>% filter(FTR=="D empate")
+df_per<- df %>% select(FTR,puntos_local, puntos_visit) %>%
+  mutate(punt_dif=puntos_local-puntos_visit) %>% filter(FTR=="A derrota local")
+
+
+print('GANAR')
+summary(df_gan$punt_dif)
+print(paste("Numero registros: ",dim(df_gan)[1],sep = ""))
+print('EMPATAR')
+summary(df_emp$punt_dif)
+print(paste("Numero registros: ",dim(df_emp)[1],sep = ""))
+print('PERDER')
+summary(df_per$punt_dif)
+print(paste("Numero registros: ",dim(df_per)[1],sep = ""))
+
+
+fig <- plot_ly(y = df_gan$punt_dif, type = "box",name="GANAR LOCAL",color=I('#155C94'))
+fig <- fig %>% add_trace(y = df_emp$punt_dif, name="EMPATAR LOCAL",color=I('#158D63'))
+fig <- fig %>% add_trace(y = df_per$punt_dif, name="PERDER LOCAL",color=I('#157B75'))
+fig <- fig %>% layout(title = "DIFERENCIA DE PUNTOS")
+
+fig
+
+
+rm(df_gan, df_emp, df_per)
+
+```
+
+**************
+**************
+
+# Partidos no ganados como local, visitante o en absoluto
+
+Cuantos Partidos sin ganar desde ultima victoria en la actual liga local/visitante. En absoluto y separado por local/visitante.
+
++ cant_no_gana_casa_local
++ cant_no_gana_abso_local
++ cant_no_gana_fuera_visit
++ cant_no_gana_abso_visit
+
+```{r no ganar, echo=FALSE, fig.height=8, fig.width=12}
+
+
+df_plo<- df %>% select(FTR, cant_no_gana_casa_local) %>% mutate(cant_no_gana_casa_local= categorizar(cant_no_gana_casa_local)) %>%
+  ungroup() %>%
+  group_by(FTR, cant_no_gana_casa_local) %>% mutate(n=n()) %>% distinct()
+
+plot1 <- ggplot(data=df_plo, aes(x=cant_no_gana_casa_local, y=n, fill=FTR)) +
+  geom_bar(stat="identity") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+df_plo<- df %>% select(FTR, cant_no_gana_abso_local) %>% mutate(cant_no_gana_abso_local= categorizar(cant_no_gana_abso_local)) %>% ungroup() %>%
+  group_by(FTR, cant_no_gana_abso_local) %>% mutate(n=n()) %>% distinct()
+
+plot2 <- ggplot(data=df_plo, aes(x=cant_no_gana_abso_local, y=n, fill=FTR)) +
+  geom_bar(stat="identity") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="top",legend.title=element_blank())
+
+
+df_plo<- df %>% select(FTR, cant_no_gana_fuera_visit) %>% mutate(cant_no_gana_fuera_visit= categorizar(cant_no_gana_fuera_visit)) %>%
+  ungroup() %>%
+  group_by(FTR, cant_no_gana_fuera_visit) %>% mutate(n=n()) %>% distinct()
+
+plot3 <- ggplot(data=df_plo, aes(x=cant_no_gana_fuera_visit, y=n, fill=FTR)) +
+  geom_bar(stat="identity") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+df_plo<- df %>% select(FTR, cant_no_gana_abso_visit) %>% mutate(cant_no_gana_abso_visit= categorizar(cant_no_gana_abso_visit)) %>%
+  ungroup() %>%
+  group_by(FTR, cant_no_gana_abso_visit) %>% mutate(n=n()) %>% distinct()
+
+plot4 <- ggplot(data=df_plo, aes(x=cant_no_gana_abso_visit, y=n, fill=FTR)) +
+  geom_bar(stat="identity") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+plot_grid(plot1, plot2, plot3, plot4,
+          labels = c("","","",""),
+          ncol = 2,
+          nrow = 2)
+
+rm(df_plo)
+
+```
+
+
+# Partidos ganados como local, visitante o en absoluto
+
+Numero de partidos ganados consecutivos local/visitante. En absoluto y separado por local/visitante
+
++ cant_gana_casa_local
++ cant_gana_abso_local
++ cant_gana_fuera_visit
++ cant_gana_abso_visit
+
+```{r ganar, echo=FALSE, fig.height=8, fig.width=12}
+
+
+df_plo<- df %>% select(FTR, cant_gana_casa_local) %>% mutate(cant_gana_casa_local= categorizar(cant_gana_casa_local)) %>%
+  ungroup() %>%
+  group_by(FTR, cant_gana_casa_local) %>% mutate(n=n()) %>% distinct()
+
+plot1 <- ggplot(data=df_plo, aes(x=cant_gana_casa_local, y=n, fill=FTR)) +
+  geom_bar(stat="identity") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+df_plo<- df %>% select(FTR, cant_gana_abso_local) %>% mutate(cant_gana_abso_local= categorizar(cant_gana_abso_local)) %>% ungroup() %>%
+  group_by(FTR, cant_gana_abso_local) %>% mutate(n=n()) %>% distinct()
+
+plot2 <- ggplot(data=df_plo, aes(x=cant_gana_abso_local, y=n, fill=FTR)) +
+  geom_bar(stat="identity") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="top",legend.title=element_blank())
+
+
+df_plo<- df %>% select(FTR, cant_gana_fuera_visit) %>% mutate(cant_gana_fuera_visit= categorizar(cant_gana_fuera_visit)) %>%
+  ungroup() %>%
+  group_by(FTR, cant_gana_fuera_visit) %>% mutate(n=n()) %>% distinct()
+
+plot3 <- ggplot(data=df_plo, aes(x=cant_gana_fuera_visit, y=n, fill=FTR)) +
+  geom_bar(stat="identity") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+df_plo<- df %>% select(FTR, cant_gana_abso_visit) %>% mutate(cant_gana_abso_visit= categorizar(cant_gana_abso_visit)) %>%
+  ungroup() %>%
+  group_by(FTR, cant_gana_abso_visit) %>% mutate(n=n()) %>% distinct()
+
+plot4 <- ggplot(data=df_plo, aes(x=cant_gana_abso_visit, y=n, fill=FTR)) +
+  geom_bar(stat="identity") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+plot_grid(plot1, plot2, plot3, plot4,
+          labels = c("","","",""),
+          ncol = 2,
+          nrow = 2)
+
+rm(df_plo)
+
+```
+
+
+# Partidos perder como local, visitante o en absoluto
+
+Numero de partidos perdidos consecutivos local/visitante. En absoluto y separado por local/visitante.
+
++ cant_perd_casa_local
++ cant_perd_abso_local
++ cant_perd_fuera_visit
++ cant_perd_abso_visit
+
+```{r perder, echo=FALSE, fig.height=8, fig.width=12}
+
+
+df_plo<- df %>% select(FTR, cant_perd_casa_local) %>% mutate(cant_perd_casa_local= categorizar(cant_perd_casa_local)) %>%
+  ungroup() %>%
+  group_by(FTR, cant_perd_casa_local) %>% mutate(n=n()) %>% distinct()
+
+plot1 <- ggplot(data=df_plo, aes(x=cant_perd_casa_local, y=n, fill=FTR)) +
+  geom_bar(stat="identity") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+df_plo<- df %>% select(FTR, cant_perd_abso_local) %>% mutate(cant_perd_abso_local= categorizar(cant_perd_abso_local)) %>% ungroup() %>%
+  group_by(FTR, cant_perd_abso_local) %>% mutate(n=n()) %>% distinct()
+
+plot2 <- ggplot(data=df_plo, aes(x=cant_perd_abso_local, y=n, fill=FTR)) +
+  geom_bar(stat="identity") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="top",legend.title=element_blank())
+
+
+df_plo<- df %>% select(FTR, cant_perd_fuera_visit) %>% mutate(cant_perd_fuera_visit= categorizar(cant_perd_fuera_visit)) %>%
+  ungroup() %>%
+  group_by(FTR, cant_perd_fuera_visit) %>% mutate(n=n()) %>% distinct()
+
+plot3 <- ggplot(data=df_plo, aes(x=cant_perd_fuera_visit, y=n, fill=FTR)) +
+  geom_bar(stat="identity") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+df_plo<- df %>% select(FTR, cant_perd_abso_visit) %>% mutate(cant_perd_abso_visit= categorizar(cant_perd_abso_visit)) %>%
+  ungroup() %>%
+  group_by(FTR, cant_perd_abso_visit) %>% mutate(n=n()) %>% distinct()
+
+plot4 <- ggplot(data=df_plo, aes(x=cant_perd_abso_visit, y=n, fill=FTR)) +
+  geom_bar(stat="identity") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+plot_grid(plot1, plot2, plot3, plot4,
+          labels = c("","","",""),
+          ncol = 2,
+          nrow = 2)
+
+rm(df_plo)
+
+```
+
+**************
+**************
+
+# Posicion clasificacion pasado
+
++ posicion_media_local
++ posicion_final_local
++ posicion_media_visit
++ posicion_final_visit
+
+```{r posici, echo=FALSE, fig.height=8, fig.width=12}
+
+
+df_plo<- df %>% select(FTR, posicion_media_local) %>% mutate(posicion_media_local= categorizar(posicion_media_local)) %>%
+  ungroup() %>%
+  group_by(FTR, posicion_media_local) %>% mutate(n=n()) %>% distinct()
+
+plot1 <- ggplot(data=df_plo, aes(x=posicion_media_local, y=n, fill=FTR)) +
+  geom_bar(stat="identity") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+df_plo<- df %>% select(FTR, posicion_final_local) %>% mutate(posicion_final_local= categorizar(posicion_final_local)) %>% ungroup() %>%
+  group_by(FTR, posicion_final_local) %>% mutate(n=n()) %>% distinct()
+
+plot2 <- ggplot(data=df_plo, aes(x=posicion_final_local, y=n, fill=FTR)) +
+  geom_bar(stat="identity") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="top",legend.title=element_blank())
+
+
+df_plo<- df %>% select(FTR, posicion_media_visit) %>% mutate(posicion_media_visit= categorizar(posicion_media_visit)) %>%
+  ungroup() %>%
+  group_by(FTR, posicion_media_visit) %>% mutate(n=n()) %>% distinct()
+
+plot3 <- ggplot(data=df_plo, aes(x=posicion_media_visit, y=n, fill=FTR)) +
+  geom_bar(stat="identity") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+df_plo<- df %>% select(FTR, posicion_final_visit) %>% mutate(posicion_final_visit= categorizar(posicion_final_visit)) %>%
+  ungroup() %>%
+  group_by(FTR, posicion_final_visit) %>% mutate(n=n()) %>% distinct()
+
+plot4 <- ggplot(data=df_plo, aes(x=posicion_final_visit, y=n, fill=FTR)) +
+  geom_bar(stat="identity") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+plot_grid(plot1, plot2, plot3, plot4,
+          labels = c("","","",""),
+          ncol = 2,
+          nrow = 2)
+
+rm(df_plo)
+
+```
+
+
+# Puntuación 5 partidos
+
+Puntuación de los ultimos 5 partidos (1: ganar, 0: empatar: -1:perder) en absoluto, local o visitante. Para este caso, para las primeras cuatro jornadas iremos cogiendo de los partidos que se hayan transcurrido en la anterior temporada.
+
++ acumu_5part_local
++ acumu_5part_visit
++ acumu_5part_local_abso
++ acumu_5part_visit_abso
+
+```{r puntu5, echo=FALSE, fig.height=8, fig.width=12}
+
+
+df_plo<- df %>% select(FTR, acumu_5part_local) %>% mutate(acumu_5part_local= categorizar(acumu_5part_local)) %>%
+  ungroup() %>%
+  group_by(FTR, acumu_5part_local) %>% mutate(n=n()) %>% distinct()
+
+plot1 <- ggplot(data=df_plo, aes(x=acumu_5part_local, y=n, fill=FTR)) +
+  geom_bar(stat="identity") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+df_plo<- df %>% select(FTR, acumu_5part_visit) %>% mutate(acumu_5part_visit= categorizar(acumu_5part_visit)) %>% ungroup() %>%
+  group_by(FTR, acumu_5part_visit) %>% mutate(n=n()) %>% distinct()
+
+plot3 <- ggplot(data=df_plo, aes(x=acumu_5part_visit, y=n, fill=FTR)) +
+  geom_bar(stat="identity") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="top",legend.title=element_blank())
+
+
+df_plo<- df %>% select(FTR, acumu_5part_local_abso) %>% mutate(acumu_5part_local_abso= categorizar(acumu_5part_local_abso)) %>%
+  ungroup() %>%
+  group_by(FTR, acumu_5part_local_abso) %>% mutate(n=n()) %>% distinct()
+
+plot2 <- ggplot(data=df_plo, aes(x=acumu_5part_local_abso, y=n, fill=FTR)) +
+  geom_bar(stat="identity") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+df_plo<- df %>% select(FTR, acumu_5part_visit_abso) %>% mutate(acumu_5part_visit_abso= categorizar(acumu_5part_visit_abso)) %>%
+  ungroup() %>%
+  group_by(FTR, acumu_5part_visit_abso) %>% mutate(n=n()) %>% distinct()
+
+plot4 <- ggplot(data=df_plo, aes(x=acumu_5part_visit_abso, y=n, fill=FTR)) +
+  geom_bar(stat="identity") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+plot_grid(plot1, plot2, plot3, plot4,
+          labels = c("","","",""),
+          ncol = 2,
+          nrow = 2)
+
+rm(df_plo)
+
+```
+
+**************
+**************
+
+# Goles encajados ultimos tres partidos
+
+Goles encajados en los 3 ultimos partidos en absoluto, local o visitante. Para los casos en los que el equipo haya recibido goles en segunda división los goles valdran el doble.
+
++ acumu_enc3gol_local
++ acumu_enc3gol_visit
++ acumu_enc3gol_local_abso
++ acumu_enc3gol_visit_abso
+
+```{r enca3, echo=FALSE, fig.height=8, fig.width=12}
+
+
+df_plo<- df %>% select(FTR, acumu_enc3gol_local) %>% mutate(acumu_enc3gol_local= categorizar(acumu_enc3gol_local)) %>%
+  ungroup() %>%
+  group_by(FTR, acumu_enc3gol_local) %>% mutate(n=n()) %>% distinct()
+
+plot1 <- ggplot(data=df_plo, aes(x=acumu_enc3gol_local, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+df_plo<- df %>% select(FTR, acumu_enc3gol_visit) %>% mutate(acumu_enc3gol_visit= categorizar(acumu_enc3gol_visit)) %>% ungroup() %>%
+  group_by(FTR, acumu_enc3gol_visit) %>% mutate(n=n()) %>% distinct()
+
+plot3 <- ggplot(data=df_plo, aes(x=acumu_enc3gol_visit, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="top",legend.title=element_blank())
+
+
+df_plo<- df %>% select(FTR, acumu_enc3gol_local_abso) %>% mutate(acumu_enc3gol_local_abso= categorizar(acumu_enc3gol_local_abso)) %>%
+  ungroup() %>%
+  group_by(FTR, acumu_enc3gol_local_abso) %>% mutate(n=n()) %>% distinct()
+
+plot2 <- ggplot(data=df_plo, aes(x=acumu_enc3gol_local_abso, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+df_plo<- df %>% select(FTR, acumu_enc3gol_visit_abso) %>% mutate(acumu_enc3gol_visit_abso= categorizar(acumu_enc3gol_visit_abso)) %>%
+  ungroup() %>%
+  group_by(FTR, acumu_enc3gol_visit_abso) %>% mutate(n=n()) %>% distinct()
+
+plot4 <- ggplot(data=df_plo, aes(x=acumu_enc3gol_visit_abso, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+plot_grid(plot1, plot2, plot3, plot4,
+          labels = c("","","",""),
+          ncol = 2,
+          nrow = 2)
+
+rm(df_plo)
+
+```
+
+
+# Goles realizados ultimos tres partidos
+
+Goles realizados en los 3 ultimos partidos en absoluto, local o visitante. A los goles realizados en segunda división se les pone una penalización por el echo de ser de segunda división.
+
++ acumu_reali3gol_local
++ acumu_reali3gol_local_abso
++ acumu_reali3gol_visit
++ acumu_reali3gol_visit_abso
+
+```{r reali3, echo=FALSE, fig.height=8, fig.width=12}
+
+
+df_plo<- df %>% select(FTR, acumu_reali3gol_local) %>% mutate(acumu_reali3gol_local= categorizar(acumu_reali3gol_local)) %>%
+  ungroup() %>%
+  group_by(FTR, acumu_reali3gol_local) %>% mutate(n=n()) %>% distinct()
+
+plot1 <- ggplot(data=df_plo, aes(x=acumu_reali3gol_local, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+df_plo<- df %>% select(FTR, acumu_reali3gol_local_abso) %>% mutate(acumu_reali3gol_local_abso= categorizar(acumu_reali3gol_local_abso)) %>% ungroup() %>%
+  group_by(FTR, acumu_reali3gol_local_abso) %>% mutate(n=n()) %>% distinct()
+
+plot2 <- ggplot(data=df_plo, aes(x=acumu_reali3gol_local_abso, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="top",legend.title=element_blank())
+
+
+df_plo<- df %>% select(FTR, acumu_reali3gol_visit) %>% mutate(acumu_reali3gol_visit= categorizar(acumu_reali3gol_visit)) %>%
+  ungroup() %>%
+  group_by(FTR, acumu_reali3gol_visit) %>% mutate(n=n()) %>% distinct()
+
+plot3 <- ggplot(data=df_plo, aes(x=acumu_reali3gol_visit, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+df_plo<- df %>% select(FTR, acumu_reali3gol_visit_abso) %>% mutate(acumu_reali3gol_visit_abso= categorizar(acumu_reali3gol_visit_abso)) %>%
+  ungroup() %>%
+  group_by(FTR, acumu_reali3gol_visit_abso) %>% mutate(n=n()) %>% distinct()
+
+plot4 <- ggplot(data=df_plo, aes(x=acumu_reali3gol_visit_abso, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+plot_grid(plot1, plot2, plot3, plot4,
+          labels = c("","","",""),
+          ncol = 2,
+          nrow = 2)
+
+rm(df_plo)
+
+```
+
+
+# Media parte de goles encajados ultimos tres partidos
+
+Goles encajados en los 3 ultimos partidos al descanso en absoluto, local o visitante. Para los casos en los que el equipo haya recibido goles en segunda división los goles valdran el doble.
+
++ acumu_enc3gol_media_local
++ acumu_enc3gol_media_local_abso
++ acumu_enc3gol_media_visit
++ acumu_enc3gol_media_visit_abso
+
+```{r enc3med, echo=FALSE, fig.height=8, fig.width=12}
+
+
+df_plo<- df %>% select(FTR, acumu_enc3gol_media_local) %>% mutate(acumu_enc3gol_media_local= categorizar(acumu_enc3gol_media_local)) %>%
+  ungroup() %>%
+  group_by(FTR, acumu_enc3gol_media_local) %>% mutate(n=n()) %>% distinct()
+
+plot1 <- ggplot(data=df_plo, aes(x=acumu_enc3gol_media_local, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+df_plo<- df %>% select(FTR, acumu_enc3gol_media_local_abso) %>% mutate(acumu_enc3gol_media_local_abso= categorizar(acumu_enc3gol_media_local_abso)) %>% ungroup() %>%
+  group_by(FTR, acumu_enc3gol_media_local_abso) %>% mutate(n=n()) %>% distinct()
+
+plot2 <- ggplot(data=df_plo, aes(x=acumu_enc3gol_media_local_abso, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="top",legend.title=element_blank())
+
+
+df_plo<- df %>% select(FTR, acumu_enc3gol_media_visit) %>% mutate(acumu_enc3gol_media_visit= categorizar(acumu_enc3gol_media_visit)) %>%
+  ungroup() %>%
+  group_by(FTR, acumu_enc3gol_media_visit) %>% mutate(n=n()) %>% distinct()
+
+plot3 <- ggplot(data=df_plo, aes(x=acumu_enc3gol_media_visit, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+df_plo<- df %>% select(FTR, acumu_enc3gol_media_visit_abso) %>% mutate(acumu_enc3gol_media_visit_abso= categorizar(acumu_enc3gol_media_visit_abso)) %>%
+  ungroup() %>%
+  group_by(FTR, acumu_enc3gol_media_visit_abso) %>% mutate(n=n()) %>% distinct()
+
+plot4 <- ggplot(data=df_plo, aes(x=acumu_enc3gol_media_visit_abso, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+plot_grid(plot1, plot2, plot3, plot4,
+          labels = c("","","",""),
+          ncol = 2,
+          nrow = 2)
+
+rm(df_plo)
+
+```
+
+
+# Media parte de goles realizados ultimos tres partidos
+
+Goles realizados en los 3 ultimos partidos al descanso en absoluto, local o visitante. A los goles realizados en segunda división se les pone una penalización por el echo de ser de segunda división.
+
++ acumu_reali3gol_media_local
++ acumu_reali3gol_media_local_abso
++ acumu_reali3gol_media_visit
++ acumu_reali3gol_media_visit_abso
+
+```{r real3med, echo=FALSE, fig.height=8, fig.width=12}
+
+
+df_plo<- df %>% select(FTR, acumu_reali3gol_media_local) %>% mutate(acumu_reali3gol_media_local= categorizar(acumu_reali3gol_media_local)) %>%
+  ungroup() %>%
+  group_by(FTR, acumu_reali3gol_media_local) %>% mutate(n=n()) %>% distinct()
+
+plot1 <- ggplot(data=df_plo, aes(x=acumu_reali3gol_media_local, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+df_plo<- df %>% select(FTR, acumu_reali3gol_media_local_abso) %>% mutate(acumu_reali3gol_media_local_abso= categorizar(acumu_reali3gol_media_local_abso)) %>% ungroup() %>%
+  group_by(FTR, acumu_reali3gol_media_local_abso) %>% mutate(n=n()) %>% distinct()
+
+plot2 <- ggplot(data=df_plo, aes(x=acumu_reali3gol_media_local_abso, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="top",legend.title=element_blank())
+
+
+df_plo<- df %>% select(FTR, acumu_reali3gol_media_visit) %>% mutate(acumu_reali3gol_media_visit= categorizar(acumu_reali3gol_media_visit)) %>%
+  ungroup() %>%
+  group_by(FTR, acumu_reali3gol_media_visit) %>% mutate(n=n()) %>% distinct()
+
+plot3 <- ggplot(data=df_plo, aes(x=acumu_reali3gol_media_visit, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+df_plo<- df %>% select(FTR, acumu_reali3gol_media_visit_abso) %>% mutate(acumu_reali3gol_media_visit_abso= categorizar(acumu_reali3gol_media_visit_abso)) %>%
+  ungroup() %>%
+  group_by(FTR, acumu_reali3gol_media_visit_abso) %>% mutate(n=n()) %>% distinct()
+
+plot4 <- ggplot(data=df_plo, aes(x=acumu_reali3gol_media_visit_abso, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+plot_grid(plot1, plot2, plot3, plot4,
+          labels = c("","","",""),
+          ncol = 2,
+          nrow = 2)
+
+rm(df_plo)
+
+```
+
+**************
+**************
+
+# Mejor racha mitad anterior
+
+Mejor racha de partidos ganados entre la mitad anterior de campeonato local/visitante y en absoluto. Se asume la posible racha que venga de la otra primera mitad con si fuese de la mitad en la que estamos. Penalizamos el estar en segunda, bajando la mejor racha a la mitad
+
++ mejor_racha_loca
++ mejor_racha_abso_local
++ mejor_racha_visit
++ mejor_racha_abso_visit
+
+```{r MejRac, echo=FALSE, fig.height=8, fig.width=12}
+
+
+df_plo<- df %>% select(FTR, mejor_racha_loca) %>% mutate(mejor_racha_loca= categorizar(mejor_racha_loca)) %>%
+  ungroup() %>%
+  group_by(FTR, mejor_racha_loca) %>% mutate(n=n()) %>% distinct()
+
+plot1 <- ggplot(data=df_plo, aes(x=mejor_racha_loca, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+df_plo<- df %>% select(FTR, mejor_racha_abso_local) %>% mutate(mejor_racha_abso_local= categorizar(mejor_racha_abso_local)) %>% ungroup() %>%
+  group_by(FTR, mejor_racha_abso_local) %>% mutate(n=n()) %>% distinct()
+
+plot2 <- ggplot(data=df_plo, aes(x=mejor_racha_abso_local, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="top",legend.title=element_blank())
+
+
+df_plo<- df %>% select(FTR, mejor_racha_visit) %>% mutate(mejor_racha_visit= categorizar(mejor_racha_visit)) %>%
+  ungroup() %>%
+  group_by(FTR, mejor_racha_visit) %>% mutate(n=n()) %>% distinct()
+
+plot3 <- ggplot(data=df_plo, aes(x=mejor_racha_visit, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+df_plo<- df %>% select(FTR, mejor_racha_abso_visit) %>% mutate(mejor_racha_abso_visit= categorizar(mejor_racha_abso_visit)) %>%
+  ungroup() %>%
+  group_by(FTR, mejor_racha_abso_visit) %>% mutate(n=n()) %>% distinct()
+
+plot4 <- ggplot(data=df_plo, aes(x=mejor_racha_abso_visit, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+plot_grid(plot1, plot2, plot3, plot4,
+          labels = c("","","",""),
+          ncol = 2,
+          nrow = 2)
+
+rm(df_plo)
+
+```
+
+
+# Peor racha mitad anterior
+
+Peor racha de partidos ganados entre la mitad anterior de campeonato local/visitante y en absoluto. Se asume la posible racha que venga de la otra primera mitad con si fuese de la mitad en la que estamos. Penalizamos el estar en segunda, subimos la peor racha al doble.
+
++ peor_racha_loca
++ peor_racha_abso_local
++ peor_racha_visit
++ peor_racha_abso_visit
+
+```{r PerRac, echo=FALSE, fig.height=8, fig.width=12}
+
+
+df_plo<- df %>% select(FTR, peor_racha_loca) %>% mutate(peor_racha_loca= categorizar(peor_racha_loca)) %>%
+  ungroup() %>%
+  group_by(FTR, peor_racha_loca) %>% mutate(n=n()) %>% distinct()
+
+plot1 <- ggplot(data=df_plo, aes(x=peor_racha_loca, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+df_plo<- df %>% select(FTR, peor_racha_abso_local) %>% mutate(peor_racha_abso_local= categorizar(peor_racha_abso_local)) %>% ungroup() %>%
+  group_by(FTR, peor_racha_abso_local) %>% mutate(n=n()) %>% distinct()
+
+plot2 <- ggplot(data=df_plo, aes(x=peor_racha_abso_local, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="top",legend.title=element_blank())
+
+
+df_plo<- df %>% select(FTR, peor_racha_visit) %>% mutate(peor_racha_visit= categorizar(peor_racha_visit)) %>%
+  ungroup() %>%
+  group_by(FTR, peor_racha_visit) %>% mutate(n=n()) %>% distinct()
+
+plot3 <- ggplot(data=df_plo, aes(x=peor_racha_visit, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+df_plo<- df %>% select(FTR, peor_racha_abso_visit) %>% mutate(peor_racha_abso_visit= categorizar(peor_racha_abso_visit)) %>%
+  ungroup() %>%
+  group_by(FTR, peor_racha_abso_visit) %>% mutate(n=n()) %>% distinct()
+
+plot4 <- ggplot(data=df_plo, aes(x=peor_racha_abso_visit, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+plot_grid(plot1, plot2, plot3, plot4,
+          labels = c("","","",""),
+          ncol = 2,
+          nrow = 2)
+
+rm(df_plo)
+
+```
+
+**************
+**************
+
+# Distintas estadisticas partido anterior local
+
+Observaremos distintas estadisticas del partido anterior
+
++ gol_ante_local: Goles realizados partido anterior.
++ gol_ante_local_abso: Goles realizados partido anterior.
++ resul_ante_local: Resultado partido anterior.
++ resul_ante_local_abso: Resultado partido anterior.
++ disp_ante_local: Disparos realizados partido anterior.
++ disp_ante_local_abso: Disparos realizados partido anterior.
++ disp_puer_ante_local: Disparos a puerta realizados partido anterior.
++ disp_puer_ante_local_abso: Disparos a puerta realizados partido anterior.
++ roj_ante_local: Rojas realizados partido anterior.
++ roj_ante_local_abso: Rojas realizados partido anterior.
+
+```{r EstaLoc, echo=FALSE, fig.height=20, fig.width=12}
+
+
+df_plo<- df %>% select(FTR, gol_ante_local) %>% mutate(gol_ante_local= categorizar(gol_ante_local)) %>%
+  ungroup() %>%
+  group_by(FTR, gol_ante_local) %>% mutate(n=n()) %>% distinct()
+
+plot1 <- ggplot(data=df_plo, aes(x=gol_ante_local, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+df_plo<- df %>% select(FTR, resul_ante_local) %>% ungroup() %>%
+  group_by(FTR, resul_ante_local) %>% mutate(n=n()) %>% distinct()
+
+plot2 <- ggplot(data=df_plo, aes(x=resul_ante_local, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="top",legend.title=element_blank())
+
+
+df_plo<- df %>% select(FTR, disp_ante_local) %>% mutate(disp_ante_local= categorizar(disp_ante_local)) %>%
+  ungroup() %>%
+  group_by(FTR, disp_ante_local) %>% mutate(n=n()) %>% distinct()
+
+plot3 <- ggplot(data=df_plo, aes(x=disp_ante_local, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+df_plo<- df %>% select(FTR, disp_puer_ante_local) %>% mutate(disp_puer_ante_local= categorizar(disp_puer_ante_local)) %>%
+  ungroup() %>%
+  group_by(FTR, disp_puer_ante_local) %>% mutate(n=n()) %>% distinct()
+
+plot4 <- ggplot(data=df_plo, aes(x=disp_puer_ante_local, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+df_plo<- df %>% select(FTR, roj_ante_local) %>% mutate(roj_ante_local= categorizar(roj_ante_local)) %>%
+  ungroup() %>%
+  group_by(FTR, roj_ante_local) %>% mutate(n=n()) %>% distinct()
+
+
+plot5 <- ggplot(data=df_plo, aes(x=roj_ante_local, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+###
+
+df_plo<- df %>% select(FTR, gol_ante_local_abso) %>% mutate(gol_ante_local_abso= categorizar(gol_ante_local_abso)) %>%
+  ungroup() %>%
+  group_by(FTR, gol_ante_local_abso) %>% mutate(n=n()) %>% distinct()
+
+plot6 <- ggplot(data=df_plo, aes(x=gol_ante_local_abso, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+df_plo<- df %>% select(FTR, resul_ante_local_abso) %>% 
+  ungroup() %>%
+  group_by(FTR, resul_ante_local_abso) %>% mutate(n=n()) %>% distinct()
+
+plot7 <- ggplot(data=df_plo, aes(x=resul_ante_local_abso, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+df_plo<- df %>% select(FTR, disp_ante_local_abso) %>% mutate(disp_ante_local_abso= categorizar(disp_ante_local_abso)) %>%
+  ungroup() %>%
+  group_by(FTR, disp_ante_local_abso) %>% mutate(n=n()) %>% distinct()
+
+plot8 <- ggplot(data=df_plo, aes(x=disp_ante_local_abso, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="top",legend.title=element_blank())
+
+
+df_plo<- df %>% select(FTR, disp_puer_ante_local_abso) %>% mutate(disp_puer_ante_local_abso= categorizar(disp_puer_ante_local_abso)) %>%
+  ungroup() %>%
+  group_by(FTR, disp_puer_ante_local_abso) %>% mutate(n=n()) %>% distinct()
+
+plot9 <- ggplot(data=df_plo, aes(x=disp_puer_ante_local_abso, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+df_plo<- df %>% select(FTR, roj_ante_local_abso) %>% mutate(roj_ante_local_abso= categorizar(roj_ante_local_abso)) %>%
+  ungroup() %>%
+  group_by(FTR, roj_ante_local_abso) %>% mutate(n=n()) %>% distinct()
+
+
+plot10 <- ggplot(data=df_plo, aes(x=roj_ante_local_abso, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+plot_grid(plot1, plot6, plot2, plot7, plot3, plot8, plot4, plot9, plot5, plot10,
+          labels = c("","","","","","","","","",""),
+          ncol = 2,
+          nrow = 5)
+
+rm(df_plo)
+
+```
+
+
+# Distintas estadisticas partido anterior visitante
+
+Observaremos distintas estadisticas del partido anterior como visitante
+
++ gol_ante_visi: Goles realizados partido anterior.
++ gol_ante_visi_abso: Goles realizados partido anterior.
++ resul_ante_visi: Resultado partido anterior.
++ resul_ante_visi_abso: Resultado partido anterior.
++ disp_ante_visi: Disparos realizados partido anterior.
++ disp_ante_visi_abso: Disparos realizados partido anterior.
++ disp_puer_ante_visi: Disparos a puerta realizados partido anterior.
++ disp_puer_ante_visi_abso: Disparos a puerta realizados partido anterior.
++ roj_ante_visi: Rojas realizados partido anterior.
++ roj_ante_visi_abso: Rojas realizados partido anterior.
+
+```{r EstaVis, echo=FALSE, fig.height=20, fig.width=12}
+
+
+df_plo<- df %>% select(FTR, gol_ante_visi) %>% mutate(gol_ante_visi= categorizar(gol_ante_visi)) %>%
+  ungroup() %>%
+  group_by(FTR, gol_ante_visi) %>% mutate(n=n()) %>% distinct()
+
+plot1 <- ggplot(data=df_plo, aes(x=gol_ante_visi, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+df_plo<- df %>% select(FTR, gol_ante_visi_abso) %>% mutate(gol_ante_visi_abso= categorizar(gol_ante_visi_abso)) %>%
+  ungroup() %>%
+  group_by(FTR, gol_ante_visi_abso) %>% mutate(n=n()) %>% distinct()
+
+plot6 <- ggplot(data=df_plo, aes(x=gol_ante_visi_abso, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+df_plo<- df %>% select(FTR, resul_ante_visi) %>% ungroup() %>%
+  group_by(FTR, resul_ante_visi) %>% mutate(n=n()) %>% distinct()
+
+plot2 <- ggplot(data=df_plo, aes(x=resul_ante_visi, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="top",legend.title=element_blank())
+
+df_plo<- df %>% select(FTR, resul_ante_visi_abso) %>% ungroup() %>%
+  group_by(FTR, resul_ante_visi_abso) %>% mutate(n=n()) %>% distinct()
+
+plot7 <- ggplot(data=df_plo, aes(x=resul_ante_visi_abso, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+df_plo<- df %>% select(FTR, disp_ante_visi) %>% mutate(disp_ante_visi= categorizar(disp_ante_visi)) %>%
+  ungroup() %>%
+  group_by(FTR, disp_ante_visi) %>% mutate(n=n()) %>% distinct()
+
+plot3 <- ggplot(data=df_plo, aes(x=disp_ante_visi, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+df_plo<- df %>% select(FTR, disp_ante_visi_abso) %>% mutate(disp_ante_visi_abso= categorizar(disp_ante_visi_abso)) %>%
+  ungroup() %>%
+  group_by(FTR, disp_ante_visi_abso) %>% mutate(n=n()) %>% distinct()
+
+plot8 <- ggplot(data=df_plo, aes(x=disp_ante_visi_abso, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+df_plo<- df %>% select(FTR, disp_puer_ante_visi) %>% mutate(disp_puer_ante_visi= categorizar(disp_puer_ante_visi)) %>%
+  ungroup() %>%
+  group_by(FTR, disp_puer_ante_visi) %>% mutate(n=n()) %>% distinct()
+
+plot4 <- ggplot(data=df_plo, aes(x=disp_puer_ante_visi, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+df_plo<- df %>% select(FTR, disp_puer_ante_visi_abso) %>% mutate(disp_puer_ante_visi_abso= categorizar(disp_puer_ante_visi_abso)) %>%
+  ungroup() %>%
+  group_by(FTR, disp_puer_ante_visi_abso) %>% mutate(n=n()) %>% distinct()
+
+plot9 <- ggplot(data=df_plo, aes(x=disp_puer_ante_visi_abso, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="top",legend.title=element_blank())
+
+df_plo<- df %>% select(FTR, roj_ante_visi) %>% mutate(roj_ante_visi= categorizar(roj_ante_visi)) %>%
+  ungroup() %>%
+  group_by(FTR, roj_ante_visi) %>% mutate(n=n()) %>% distinct()
+
+
+plot5 <- ggplot(data=df_plo, aes(x=roj_ante_visi, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+df_plo<- df %>% select(FTR, roj_ante_visi_abso) %>% mutate(roj_ante_visi_abso= categorizar(roj_ante_visi_abso)) %>%
+  ungroup() %>%
+  group_by(FTR, roj_ante_visi_abso) %>% mutate(n=n()) %>% distinct()
+
+plot10 <- ggplot(data=df_plo, aes(x=roj_ante_visi_abso, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+plot_grid(plot1, plot6, plot2, plot7, plot3, plot8, plot4, plot9, plot5, plot10,
+          labels = c("","","","","","","","","",""),
+          ncol = 2,
+          nrow = 5)
+
+rm(df_plo)
+
+```
+
+**************
+**************
+
+# Meteorologias locales
+
++ tmed_local
++ prec_local
++ racha_local
++ sol_local
+
+```{r MetLoc, echo=FALSE, fig.height=8, fig.width=12}
+
+
+df_plo<- df %>% select(FTR, tmed_local) %>% mutate(tmed_local= categorizar(tmed_local)) %>%
+  ungroup() %>%
+  group_by(FTR, tmed_local) %>% mutate(n=n()) %>% distinct()
+
+plot1 <- ggplot(data=df_plo, aes(x=tmed_local, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+df_plo<- df %>% select(FTR, prec_local) %>% mutate(prec_local= categorizar(prec_local)) %>% ungroup() %>%
+  group_by(FTR, prec_local) %>% mutate(n=n()) %>% distinct()
+
+plot2 <- ggplot(data=df_plo, aes(x=prec_local, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="top",legend.title=element_blank())
+
+
+df_plo<- df %>% select(FTR, racha_local) %>% mutate(racha_local= categorizar(racha_local)) %>%
+  ungroup() %>%
+  group_by(FTR, racha_local) %>% mutate(n=n()) %>% distinct()
+
+plot3 <- ggplot(data=df_plo, aes(x=racha_local, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+df_plo<- df %>% select(FTR, sol_local) %>% mutate(sol_local= categorizar(sol_local)) %>%
+  ungroup() %>%
+  group_by(FTR, sol_local) %>% mutate(n=n()) %>% distinct()
+
+plot4 <- ggplot(data=df_plo, aes(x=sol_local, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+plot_grid(plot1, plot2, plot3, plot4,
+          labels = c("","","","",""),
+          ncol = 2,
+          nrow = 2)
+
+rm(df_plo)
+
+```
+
+
+# Meteorologias relativas
+
++ relati_tem_local
++ relati_sol_local
++ relati_tem_visit
++ relati_sol_visit
+
+```{r MetRel, echo=FALSE, fig.height=8, fig.width=12}
+
+
+df_plo<- df %>% select(FTR, relati_tem_local) %>%
+  ungroup() %>%
+  group_by(FTR, relati_tem_local) %>% mutate(n=n()) %>% distinct()
+
+plot1 <- ggplot(data=df_plo, aes(x=relati_tem_local, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+df_plo<- df %>% select(FTR, relati_sol_local) %>%
+  group_by(FTR, relati_sol_local) %>% mutate(n=n()) %>% distinct()
+
+plot2 <- ggplot(data=df_plo, aes(x=relati_sol_local, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="top",legend.title=element_blank())
+
+
+df_plo<- df %>% select(FTR, relati_tem_visit) %>%
+  ungroup() %>%
+  group_by(FTR, relati_tem_visit) %>% mutate(n=n()) %>% distinct()
+
+plot3 <- ggplot(data=df_plo, aes(x=relati_tem_visit, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+df_plo<- df %>% select(FTR, relati_sol_visit) %>%
+  ungroup() %>%
+  group_by(FTR, relati_sol_visit) %>% mutate(n=n()) %>% distinct()
+
+plot4 <- ggplot(data=df_plo, aes(x=relati_sol_visit, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+plot_grid(plot1, plot2, plot3, plot4,
+          labels = c("","","","",""),
+          ncol = 2,
+          nrow = 2)
+
+rm(df_plo)
+
+```
+
+
+# Meteorologias Diferenciales
+
++ diff_temp_med: Nos refleja la diferencia entre la media de la temperatura de los ultimos 7 dias del local y visitante.
++ diff_lluvia_sum: Nos refleja la diferencia entre la media de la lluvia de los ultimos 7 dias del local y visitante.
++ diff_sol_med: Nos refleja la diferencia entre la media del sol de los ultimos 7 dias del local y visitante.
+
+```{r MetDif, echo=FALSE, fig.height=5, fig.width=12}
+
+
+df_plo<- df %>% select(FTR, diff_temp_med) %>% mutate(diff_temp_med= categorizar(diff_temp_med)) %>%
+  ungroup() %>%
+  group_by(FTR, diff_temp_med) %>% mutate(n=n()) %>% distinct()
+
+plot1 <- ggplot(data=df_plo, aes(x=diff_temp_med, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+df_plo<- df %>% select(FTR, diff_lluvia_sum) %>% mutate(diff_lluvia_sum= categorizar(diff_lluvia_sum)) %>% ungroup() %>%
+  group_by(FTR, diff_lluvia_sum) %>% mutate(n=n()) %>% distinct()
+
+plot2 <- ggplot(data=df_plo, aes(x=diff_lluvia_sum, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="top",legend.title=element_blank())
+
+
+df_plo<- df %>% select(FTR, diff_sol_med) %>% mutate(diff_sol_med= categorizar(diff_sol_med)) %>%
+  ungroup() %>%
+  group_by(FTR, diff_sol_med) %>% mutate(n=n()) %>% distinct()
+
+plot3 <- ggplot(data=df_plo, aes(x=diff_sol_med, y=n, fill=FTR)) +
+  geom_bar(stat="identity",  position = "fill") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none")
+
+
+
+
+plot_grid(plot1, plot2, plot3,
+          labels = c("","","",""),
+          ncol = 3,
+          nrow = 1)
+
+rm(df_plo)
+
+```
+
+**************
+**************
